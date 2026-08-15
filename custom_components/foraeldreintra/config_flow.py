@@ -18,6 +18,7 @@ from .const import (
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
+    DEFAULT_SHOW_SCHEDULE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_FOCUS_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_GENERAL_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
@@ -33,6 +34,7 @@ from .const import (
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
+    OPT_SHOW_SCHEDULE_SENSORS,
     OPT_SHOW_WEEKPLAN_FOCUS_SENSORS,
     OPT_SHOW_WEEKPLAN_GENERAL_SENSORS,
     OPT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
@@ -144,6 +146,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 or ""
             ).strip()
 
+            cleaned[OPT_SHOW_SCHEDULE_SENSORS] = bool(
+                cleaned.get(OPT_SHOW_SCHEDULE_SENSORS, DEFAULT_SHOW_SCHEDULE_SENSORS)
+            )
             cleaned[OPT_SHOW_WEEKPLAN_SENSORS] = bool(
                 cleaned.get(OPT_SHOW_WEEKPLAN_SENSORS, DEFAULT_SHOW_WEEKPLAN_SENSORS)
             )
@@ -247,6 +252,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             )
         ] = str
+
+        schema_dict[
+            vol.Required(
+                OPT_SHOW_SCHEDULE_SENSORS,
+                default=existing.get(OPT_SHOW_SCHEDULE_SENSORS, DEFAULT_SHOW_SCHEDULE_SENSORS),
+            )
+        ] = bool
 
         schema_dict[
             vol.Required(

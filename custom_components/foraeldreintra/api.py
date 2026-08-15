@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any
 
 from aiohttp import ClientSession
@@ -12,6 +13,7 @@ from .api_parser import (
     _extract_diary_id,
     _extract_latest_weekplan_from_list,
     _parse_homework_notes,
+    _parse_schedule_page,
     _parse_weekplan_page,
 )
 
@@ -210,6 +212,40 @@ class ForaldreIntraClient:
             )
         )
         return all_items
+
+    async def get_schedules_for_children(
+        self,
+        children: list[Child],
+        week_date: date | str | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Fetch the independent school schedule for each selected child."""
+        result: dict[str, dict[str, Any]] = {}
+        for child in children:
+            try:
+                result[child.name] = await self.get_schedule_for_child(child, week_date)
+            except ForaldreIntraError:
+                # Some schools do not expose the optional schedule module.
+                continue
+        return result
+
+    async def get_schedule_for_child(
+        self,
+        child: Child,
+        week_date: date | str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch and parse one child's schedule for the week containing a date."""
+        target_date = date.fromisoformat(week_date) if isinstance(week_date, str) else week_date
+        target_date = target_date or date.today()
+        monday = target_date - timedelta(days=target_date.weekday())
+        week_start = monday.isoformat()
+        schedule_url = (
+            f"{self._base_url}/parent/{child.id}/{child.name}/schedules/schedule/scheme"
+            f"?weekStartDate={week_start}"
+        )
+        html_text = await self._get_text(schedule_url)
+        parsed = _parse_schedule_page(html_text, schedule_url)
+        parsed["barn"] = child.name
+        return parsed
 
     async def get_weekplans_for_children(
         self,

@@ -1,5 +1,6 @@
 import html as html_module
 import json
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,7 @@ from custom_components.foraeldreintra.api_parser import (
     _extract_latest_weekplan_from_list,
     _html_to_text,
     _parse_homework_notes,
+    _parse_schedule_page,
     _parse_weekplan_page,
 )
 
@@ -271,6 +273,37 @@ class TestExtractLatestWeekplanFromList:
 
     def test_returns_none_for_empty_string(self):
         assert _extract_latest_weekplan_from_list("") is None
+
+
+class TestParseSchedulePage:
+    def test_parses_week_days_times_and_lessons(self):
+        html_text = (Path(__file__).parent / "fixtures" / "schedule.html").read_text()
+        result = _parse_schedule_page(html_text, "https://example.com/schedule")
+
+        assert result["week"] == "34-2026"
+        assert result["week_start"] == "2026-08-17"
+        assert result["url"] == "https://example.com/schedule"
+        assert len(result["days"]) == 2
+        assert len(result["lessons"]) == 3
+        assert result["days"][0]["day"] == "Mandag"
+        assert result["days"][0]["date"] == "2026-08-17"
+        assert result["lessons"][0]["start"] == "08:05"
+        assert result["lessons"][0]["end"] == "09:05"
+        assert result["lessons"][0]["subject"] == "Dansk"
+
+    def test_preserves_multiple_lesson_content_spans(self):
+        html_text = (Path(__file__).parent / "fixtures" / "schedule.html").read_text()
+        result = _parse_schedule_page(html_text, "https://example.com/schedule")
+
+        lesson = result["days"][1]["lessons"][0]
+        assert lesson["subject"] == "Matematik / Vikar"
+        assert lesson["contents"] == ["Matematik", "Vikar"]
+
+    def test_missing_schedule_container_returns_empty_schedule(self):
+        result = _parse_schedule_page("<html></html>", "https://example.com/schedule")
+        assert result["week"] is None
+        assert result["days"] == []
+        assert result["lessons"] == []
 
 
 class TestParseWeekplanPage:

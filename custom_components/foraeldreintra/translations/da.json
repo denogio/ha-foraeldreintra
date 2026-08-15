@@ -30,6 +30,7 @@
           "display_period": "Visningsperiode",
           "show_homework_sensors": "Vis lektie-sensorer",
           "add_homework_markdown": "Tilføj markdown til lektier",
+          "show_schedule_sensors": "Vis separate skoleskema-sensorer",
           "include_weekplan_general": "Medtag Generelt i samlet ugeplan",
           "include_weekplan_focus": "Medtag Fokus i samlet ugeplan",
           "include_weekplan_schedule": "Medtag Skema i samlet ugeplan",

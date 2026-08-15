@@ -3,3 +3,5 @@ custom_components/foraeldreintra/__pycache__/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+.serena/

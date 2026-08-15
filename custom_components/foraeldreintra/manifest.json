@@ -1,10 +1,10 @@
 {
   "domain": "foraeldreintra",
   "name": "ForældreIntra",
-  "version": "2.1.1",
-  "documentation": "https://github.com/CagosDk/ha-foraeldreintra",
-  "issue_tracker": "https://github.com/CagosDk/ha-foraeldreintra/issues",
-  "codeowners": ["@CagosDk"],
+  "version": "2.2.0",
+  "documentation": "https://github.com/denogio/ha-foraeldreintra",
+  "issue_tracker": "https://github.com/denogio/ha-foraeldreintra/issues",
+  "codeowners": ["@denogio"],
   "config_flow": true,
   "iot_class": "cloud_polling",
   "requirements": ["beautifulsoup4==4.12.3"]

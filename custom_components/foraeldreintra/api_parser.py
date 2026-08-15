@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import re
+from datetime import datetime
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -206,6 +207,111 @@ def _parse_weekplan_page(
         "class_or_group": class_or_group,
         "items": items,
         "days": days,
+    }
+
+
+def _parse_schedule_page(html_text: str, url: str) -> dict[str, Any]:
+    """Parse the grid returned by the separate SkoleIntra schedule endpoint."""
+    soup = BeautifulSoup(html_text, "html.parser")
+    container = soup.select_one(".sk-schedule-table-container")
+    if not container:
+        return {
+            "title": "Skoleskema",
+            "week": None,
+            "week_start": None,
+            "url": url,
+            "days": [],
+            "lessons": [],
+        }
+
+    def grid_number(element: Any, prefix: str) -> int | None:
+        for class_name in element.get("class", []):
+            match = re.fullmatch(rf"{re.escape(prefix)}(\d+)", class_name)
+            if match:
+                return int(match.group(1))
+        return None
+
+    time_slots: dict[int, dict[str, str]] = {}
+    for cell in container.select(".sk-ws-secondary:not(.sk-ws-header)"):
+        # Mobile markup repeats the time column once for every weekday.
+        if "h-is-mobile" in cell.get("class", []):
+            continue
+        row = grid_number(cell, "sk-rg-row-")
+        text = _clean_text(cell.get_text(" ", strip=True))
+        match = re.search(r"(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})", text)
+        if row is not None and match:
+            time_slots[row] = {
+                "time": f"{match.group(1)} - {match.group(2)}",
+                "start": match.group(1),
+                "end": match.group(2),
+            }
+
+    days_by_column: dict[int, dict[str, Any]] = {}
+    for header in container.select(".sk-ws-primary.sk-ws-header"):
+        column = grid_number(header, "sk-rg-col-")
+        if column is None:
+            continue
+
+        spans = header.find_all("span")
+        day_name = _clean_text(spans[0].get_text(" ", strip=True)) if spans else ""
+        date_text = _clean_text(spans[1].get_text(" ", strip=True)) if len(spans) > 1 else ""
+        iso_date = _dk_date_to_iso(date_text)
+        days_by_column[column] = {
+            "day": day_name,
+            "formatted_date": date_text,
+            "date": iso_date,
+            "lessons": [],
+        }
+
+    lessons: list[dict[str, Any]] = []
+    for cell in container.select(".sk-ws-primary:not(.sk-ws-header)"):
+        row = grid_number(cell, "sk-rg-row-")
+        column = grid_number(cell, "sk-rg-col-")
+        day = days_by_column.get(column) if column is not None else None
+        slot = time_slots.get(row) if row is not None else None
+        if not day or not slot:
+            continue
+
+        contents = [
+            _clean_text(span.get_text(" ", strip=True))
+            for span in cell.select(".sk-schedule-table-lesson-content span")
+        ]
+        contents = [content for content in contents if content]
+        if not contents:
+            fallback = cell.select_one(".sk-schedule-table-lesson-content")
+            fallback_text = _clean_text(fallback.get_text(" ", strip=True)) if fallback else ""
+            contents = [fallback_text] if fallback_text else []
+        if not contents:
+            continue
+
+        lesson = {
+            "day": day["day"],
+            "date": day["date"],
+            **slot,
+            "subject": " / ".join(contents),
+            "contents": contents,
+        }
+        day["lessons"].append({key: value for key, value in lesson.items() if key not in ("day", "date")})
+        lessons.append(lesson)
+
+    days = [days_by_column[column] for column in sorted(days_by_column)]
+    week_start = next((day.get("date") for day in days if day.get("date")), None)
+    week = None
+    if week_start:
+        try:
+            parsed_date = datetime.strptime(week_start, "%Y-%m-%d").date()
+            iso_year, iso_week, _ = parsed_date.isocalendar()
+            week = f"{iso_week:02d}-{iso_year}"
+        except ValueError:
+            pass
+
+    return {
+        "title": f"Skoleskema - uge {week.split('-', 1)[0]}" if week else "Skoleskema",
+        "week": week,
+        "week_start": week_start,
+        "url": url,
+        "days": days,
+        "lessons": lessons,
     }
 
 

@@ -31,6 +31,7 @@ Det medfølgende custom card gør det nemt at vise lektier direkte i dit dashboa
 - Mulighed for at skjule/vises færdige lektier
 - Markér lektier som færdige / fortryd direkte fra kortet
 - Understøttelse af afledte lektier fra ugeplan
+- Separat skoleskema pr. barn, uafhængigt af lærernes ugeplan
 - Statusvisning som prik, venstre farvebar eller ingen indikator
 - Statusbadge med tekster som fx **Mangler** / **Færdig**
 - Mulighed for at vise/skjule:
@@ -168,7 +169,9 @@ show_derived_items: true
 Integrationen opretter sensorer i Home Assistant med en liste af lektier i attributter.  
 Kortet læser disse data fra `hass.states` og viser dem i dashboardet.
 
-Kortet kan blandt andet bruge disse oplysninger fra sensoren:
+Integrationen opretter desuden `ForældreIntra skoleskema (<barn>)` for hvert valgt barn. Sensorens tilstand er det aktuelle ugenummer, mens attributterne `days` og `lessons` indeholder dato, fag samt start- og sluttid. Skoleskemaet hentes fra SkoleIntras separate skemamodul og virker derfor også, når ugeplanen ikke er publiceret.
+
+Kortet kan blandt andet bruge disse oplysninger fra lektiesensoren:
 
 - barn
 - fag

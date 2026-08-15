@@ -16,6 +16,10 @@ DEFAULT_SHOW_HOMEWORK_SENSORS = True
 OPT_ADD_HOMEWORK_MARKDOWN = "add_homework_markdown"
 DEFAULT_ADD_HOMEWORK_MARKDOWN = False
 
+# Skoleskema (separat fra ugeplan)
+OPT_SHOW_SCHEDULE_SENSORS = "show_schedule_sensors"
+DEFAULT_SHOW_SCHEDULE_SENSORS = True
+
 # Ugeplan - sensorer
 OPT_SHOW_WEEKPLAN_SENSORS = "show_weekplan_sensors"
 DEFAULT_SHOW_WEEKPLAN_SENSORS = True
