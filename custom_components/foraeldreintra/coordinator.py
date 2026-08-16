@@ -112,7 +112,10 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         timetables = await self.client.get_timetables_for_children(children) if children else {}
 
         return {
-            "children": [{"id": c.id, "name": c.name} for c in children],
+            "children": [
+                {"id": c.id, "name": c.name, "path_name": c.path_name}
+                for c in children
+            ],
             "items": items,
             "weeklyplans": weeklyplans,
             "timetables": timetables,

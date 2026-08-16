@@ -6,7 +6,12 @@ import re
 from datetime import date, datetime
 from typing import Any
 
-from .decoding import _decode_display_value, _decode_homework_item, _decode_weekplan
+from .decoding import (
+    _decode_child_name,
+    _decode_display_value,
+    _decode_homework_item,
+    _decode_weekplan,
+)
 
 DK_WEEKDAY = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"]
 DK_MONTH = [
@@ -202,10 +207,10 @@ def _apply_timetable_aliases(
     translated = copy.deepcopy(timetable)
 
     participating_optional_subjects: set[str] | None = None
-    child_key = str(_decode_display_value(child_name) or "").casefold()
+    child_key = _decode_child_name(child_name).casefold()
     if child_key and optional_subjects_by_child is not None:
         for configured_child, configured_subjects in optional_subjects_by_child.items():
-            configured_key = str(_decode_display_value(configured_child) or "").casefold()
+            configured_key = _decode_child_name(configured_child).casefold()
             if configured_key != child_key:
                 continue
             if isinstance(configured_subjects, str):

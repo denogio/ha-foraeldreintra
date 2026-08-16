@@ -51,6 +51,7 @@ from .const import (
     OPT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     OPT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
 )
+from .decoding import _decode_child_name
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -125,6 +126,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         existing = self.entry.options
 
         selected_default = existing.get(OPT_SELECTED_CHILDREN)
+        if selected_default:
+            selected_default = [_decode_child_name(name) for name in selected_default]
         if (selected_default is None or selected_default == []) and self._children:
             selected_default = list(self._children)
 

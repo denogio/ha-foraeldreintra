@@ -1,4 +1,5 @@
 from custom_components.foraeldreintra.decoding import (
+    _decode_child_name,
     _decode_display_value,
     _decode_homework_item,
     _decode_link_dict,
@@ -32,6 +33,14 @@ class TestDecodeDisplayValue:
     def test_percent_encoded_danish_chars(self):
         result = _decode_display_value("S%C3%B8nderjylland")
         assert result == "Sønderjylland"
+
+
+class TestDecodeChildName:
+    def test_decodes_url_slug(self):
+        assert _decode_child_name("Josva_H%C3%B8jgaard") == "Josva Højgaard"
+
+    def test_readable_name_is_unchanged(self):
+        assert _decode_child_name("Josva Højgaard") == "Josva Højgaard"
 
 
 class TestDecodeLinkDict:

@@ -6,6 +6,7 @@ import pytest
 
 from custom_components.foraeldreintra.api_parser import (
     _clean_child_name,
+    _clean_child_path_name,
     _dk_date_to_iso,
     _extract_diary_id,
     _extract_latest_weekplan_from_list,
@@ -67,6 +68,12 @@ class TestCleanChildName:
 
     def test_name_without_item_suffix_unchanged(self):
         assert _clean_child_name("Anna") == "Anna"
+
+    def test_decodes_url_name_and_replaces_underscores(self):
+        assert _clean_child_name("Alva_H%C3%B8jgaard") == "Alva Højgaard"
+
+    def test_path_name_preserves_url_slug(self):
+        assert _clean_child_path_name("Alva_H%C3%B8jgaarditem") == "Alva_H%C3%B8jgaard"
 
     def test_strips_surrounding_whitespace(self):
         assert _clean_child_name("  Anna  ") == "Anna"

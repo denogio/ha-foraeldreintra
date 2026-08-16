@@ -5,6 +5,7 @@ import json
 import re
 from datetime import datetime
 from typing import Any
+from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
 
@@ -24,12 +25,17 @@ def _html_to_text(html_fragment: str) -> str:
     return "\n".join(lines).strip()
 
 
+def _clean_child_path_name(name: str) -> str:
+    """Remove the glued ``item`` suffix while preserving the URL path slug."""
+    path_name = (name or "").strip()
+    if path_name.lower().endswith("item"):
+        path_name = path_name[:-4]
+    return path_name
+
+
 def _clean_child_name(name: str) -> str:
-    """Fjern evt. 'item' suffix fra barnets navn i URL."""
-    n = (name or "").strip()
-    if n.lower().endswith("item"):
-        n = n[:-4]
-    return n
+    """Convert a child URL path slug to a readable display name."""
+    return unquote(_clean_child_path_name(name)).replace("_", " ").strip()
 
 
 def _extract_diary_id(html_text: str) -> str | None:

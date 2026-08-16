@@ -13,6 +13,14 @@ def _decode_display_value(value: Any) -> Any:
     return unquote(value).strip()
 
 
+def _decode_child_name(value: Any) -> str:
+    """Convert a child URL slug to its human-readable name."""
+    decoded = _decode_display_value(value)
+    if decoded is None:
+        return ""
+    return str(decoded).replace("_", " ").strip()
+
+
 def _decode_link_dict(link: dict[str, Any]) -> dict[str, Any]:
     return {
         **link,
@@ -24,7 +32,7 @@ def _decode_link_dict(link: dict[str, Any]) -> dict[str, Any]:
 def _decode_homework_item(item: dict[str, Any]) -> dict[str, Any]:
     return {
         **item,
-        "barn": _decode_display_value(item.get("barn")) or "",
+        "barn": _decode_child_name(item.get("barn")),
         "fag": _decode_display_value(item.get("fag")) or "",
         "tekst": _decode_display_value(item.get("tekst")) or "",
         "title": _decode_display_value(item.get("title")) or "",

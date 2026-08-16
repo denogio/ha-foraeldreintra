@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from time import monotonic
 from typing import Any
+from urllib.parse import quote
 
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
 from .api_parser import (
     _clean_child_name,
+    _clean_child_path_name,
     _dk_date_to_iso,
     _extract_diary_id,
     _extract_latest_weekplan_from_list,
@@ -31,6 +33,14 @@ class ForaldreIntraError(Exception):
 class Child:
     id: str
     name: str
+    path_name: str | None = None
+
+    @property
+    def url_name(self) -> str:
+        """Return the encoded path segment used by SkoleIntra URLs."""
+        if self.path_name:
+            return self.path_name
+        return quote(self.name.replace(" ", "_"), safe="_%")
 
 
 class ForaldreIntraClient:
@@ -144,11 +154,12 @@ class ForaldreIntraClient:
         active_match = re.search(r"/parent/(\d+)/([^/]+)/", url or "")
         if active_match:
             child_id = active_match.group(1)
-            child_name = _clean_child_name(active_match.group(2))
+            path_name = _clean_child_path_name(active_match.group(2))
+            child_name = _clean_child_name(path_name)
             key = (child_id, child_name)
             if key not in seen:
                 seen.add(key)
-                children.append(Child(id=child_id, name=child_name))
+                children.append(Child(id=child_id, name=child_name, path_name=path_name))
 
         menu = soup.find("div", id="sk-personal-menu-container")
         if menu:
@@ -161,11 +172,12 @@ class ForaldreIntraClient:
                     continue
 
                 child_id = m.group(1)
-                child_name = _clean_child_name(m.group(2))
+                path_name = _clean_child_path_name(m.group(2))
+                child_name = _clean_child_name(path_name)
                 key = (child_id, child_name)
                 if key not in seen:
                     seen.add(key)
-                    children.append(Child(id=child_id, name=child_name))
+                    children.append(Child(id=child_id, name=child_name, path_name=path_name))
 
         return children
 
@@ -186,7 +198,7 @@ class ForaldreIntraClient:
             child_name = child.name
 
             diary_url = (
-                f"{self._base_url}/parent/{child_id}/{child_name}"
+                f"{self._base_url}/parent/{child_id}/{child.url_name}"
                 "item/weeklyplansandhomework/diary"
             )
             diary_text = await self._get_text(diary_url)
@@ -195,7 +207,7 @@ class ForaldreIntraClient:
                 continue
 
             notes_url = (
-                f"{self._base_url}/parent/{child_id}/{child_name}"
+                f"{self._base_url}/parent/{child_id}/{child.url_name}"
                 f"item/weeklyplansandhomework/diary/notes/{diary_id}"
             )
             notes_text = await self._get_text(notes_url)
@@ -246,7 +258,7 @@ class ForaldreIntraClient:
             return cached[1]
 
         schedule_url = (
-            f"{self._base_url}/parent/{child.id}/{child.name}/schedules/schedule/scheme"
+            f"{self._base_url}/parent/{child.id}/{child.url_name}/schedules/schedule/scheme"
             f"?weekStartDate={week_start}"
         )
         html_text = await self._get_text(schedule_url)
@@ -327,7 +339,7 @@ class ForaldreIntraClient:
     ) -> dict[str, Any] | None:
         """Finder nyeste publicerede ugeplan for ét barn via /list-siden."""
         list_url = (
-            f"{self._base_url}/parent/{child.id}/{child.name}"
+            f"{self._base_url}/parent/{child.id}/{child.url_name}"
             "item/weeklyplansandhomework/list"
         )
         list_html = await self._get_text(list_url)

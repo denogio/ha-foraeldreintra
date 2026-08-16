@@ -26,7 +26,7 @@ from .const import (
     OPT_TEACHER_ALIASES,
 )
 from .coordinator import ForaldreIntraCoordinator
-from .decoding import _decode_display_value
+from .decoding import _decode_child_name, _decode_display_value
 from .formatting import (
     _apply_timetable_aliases,
     _build_subject_alias_map,
@@ -55,22 +55,26 @@ async def async_setup_entry(
 
     coordinator: ForaldreIntraCoordinator = hass.data[DOMAIN][entry.entry_id]
     children = [
-        Child(id=str(child["id"]), name=str(child["name"]))
+        Child(
+            id=str(child["id"]),
+            name=_decode_child_name(child["name"]),
+            path_name=str(child.get("path_name") or "") or None,
+        )
         for child in (coordinator.data or {}).get("children", [])
         if child.get("id") and child.get("name")
     ]
     selected_children = {
-        _decode_display_value(name)
+        _decode_child_name(name)
         for name in entry.options.get(
             OPT_SELECTED_CHILDREN,
-            [_decode_display_value(child.name) for child in children],
+            [_decode_child_name(child.name) for child in children],
         )
     }
 
     entities = [
         ForaeldreIntraTimetableCalendar(coordinator, entry, child)
         for child in children
-        if not selected_children or _decode_display_value(child.name) in selected_children
+        if not selected_children or _decode_child_name(child.name) in selected_children
     ]
     async_add_entities(entities)
 
@@ -157,7 +161,7 @@ class ForaeldreIntraTimetableCalendar(
         super().__init__(coordinator)
         self._entry = entry
         self._child = child
-        self._child_display_name = _decode_display_value(child.name) or child.name
+        self._child_display_name = _decode_child_name(child.name) or child.name
         self._attr_name = f"ForældreIntra skoleskema ({self._child_display_name})"
         self._attr_unique_id = f"{entry.entry_id}_calendar_{slugify(self._child_display_name)}"
 
@@ -181,7 +185,7 @@ class ForaeldreIntraTimetableCalendar(
     def _current_timetable(self) -> dict[str, Any]:
         timetables = (self.coordinator.data or {}).get("timetables", {}) or {}
         for name, timetable in timetables.items():
-            if _decode_display_value(name) == self._child_display_name:
+            if _decode_child_name(name) == self._child_display_name:
                 return dict(timetable or {})
         return {}
 

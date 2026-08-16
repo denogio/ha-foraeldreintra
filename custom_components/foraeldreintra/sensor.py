@@ -47,7 +47,12 @@ from .const import (
     OPT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
 )
 from .coordinator import ForaldreIntraCoordinator
-from .decoding import _decode_display_value, _decode_homework_item, _decode_weekplan
+from .decoding import (
+    _decode_child_name,
+    _decode_display_value,
+    _decode_homework_item,
+    _decode_weekplan,
+)
 from .formatting import (
     _apply_timetable_aliases,
     _build_display_title,
@@ -80,16 +85,16 @@ def _filter_items(
     child: str | None = None,
 ) -> list[dict[str, Any]]:
     selected_children: list[str] = [
-        _decode_display_value(name) for name in entry.options.get(OPT_SELECTED_CHILDREN, [])
+        _decode_child_name(name) for name in entry.options.get(OPT_SELECTED_CHILDREN, [])
     ]
     selected_set = set(selected_children)
 
-    child = _decode_display_value(child) if child is not None else None
+    child = _decode_child_name(child) if child is not None else None
 
     out: list[dict[str, Any]] = []
 
     for it in items:
-        barn = _decode_display_value(it.get("barn") or "").strip()
+        barn = _decode_child_name(it.get("barn"))
 
         if selected_children and barn not in selected_set:
             continue
@@ -138,7 +143,7 @@ def _derive_homework_from_weekplans(
     derived: list[dict[str, Any]] = []
 
     for child_name_raw, raw_plan in (weeklyplans or {}).items():
-        child_name = _decode_display_value(child_name_raw) or ""
+        child_name = _decode_child_name(child_name_raw)
         plan = _decode_weekplan(raw_plan or {})
         items = plan.get("items", []) if isinstance(plan.get("items"), list) else []
         days = plan.get("days", []) if isinstance(plan.get("days"), list) else []
@@ -208,7 +213,7 @@ def _merge_homework_items(
 ) -> list[dict[str, Any]]:
     base_items = [_decode_homework_item(item) for item in list((data or {}).get("items", []) or [])]
     weeklyplans = {
-        _decode_display_value(child_name) or "": _decode_weekplan(plan or {})
+        _decode_child_name(child_name): _decode_weekplan(plan or {})
         for child_name, plan in ((data or {}).get("weeklyplans", {}) or {}).items()
     }
     return base_items + _derive_homework_from_weekplans(entry, weeklyplans)
@@ -243,8 +248,20 @@ def _decorate_homework_items(
             source=(normalized.get("source") or "homework"),
         )
 
+        completed = status_store.is_completed(homework_id) if status_store else False
+        if status_store and not completed:
+            legacy_homework_id = build_homework_id(
+                child_name=(normalized.get("barn") or "").replace(" ", "_"),
+                date_text=(normalized.get("dato") or ""),
+                subject=(normalized.get("fag") or ""),
+                title=(normalized.get("title") or ""),
+                description=(normalized.get("tekst") or ""),
+                source=(normalized.get("source") or "homework"),
+            )
+            completed = status_store.is_completed(legacy_homework_id)
+
         normalized["homework_id"] = homework_id
-        normalized["completed"] = status_store.is_completed(homework_id) if status_store else False
+        normalized["completed"] = completed
 
         decorated.append(normalized)
 
@@ -262,9 +279,9 @@ async def async_setup_entry(
 ) -> None:
     coordinator: ForaldreIntraCoordinator = hass.data[DOMAIN][entry.entry_id]
     data = coordinator.data or {}
-    children = [_decode_display_value(c.get("name")) for c in data.get("children", []) if c.get("name")]
+    children = [_decode_child_name(c.get("name")) for c in data.get("children", []) if c.get("name")]
     selected_children: list[str] = [
-        _decode_display_value(name)
+        _decode_child_name(name)
         for name in entry.options.get(OPT_SELECTED_CHILDREN, children)
     ]
 
@@ -374,7 +391,7 @@ class ForaeldreIntraChildHomeworkSensor(ForaeldreIntraBaseSensor):
     def __init__(self, hass: HomeAssistant, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
         self._hass = hass
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra lektier ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_homework_{slugify(self._child)}"
 
@@ -410,13 +427,13 @@ class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra skoleskema ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_schedule_{slugify(self._child)}"
 
     def _get_timetable(self) -> dict[str, Any]:
         timetables = {
-            _decode_display_value(name) or "": dict(timetable or {})
+            _decode_child_name(name): dict(timetable or {})
             for name, timetable in ((self.coordinator.data or {}).get("timetables", {}) or {}).items()
         }
         timetable = timetables.get(self._child, {})
@@ -455,13 +472,13 @@ class ForaeldreIntraChildWeekplanSensor(ForaeldreIntraBaseSensor):
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra ugeplan ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_weekplan_{slugify(self._child)}"
 
     def _get_plan(self) -> dict[str, Any]:
         weeklyplans = {
-            _decode_display_value(name) or "": _decode_weekplan(plan or {})
+            _decode_child_name(name): _decode_weekplan(plan or {})
             for name, plan in ((self.coordinator.data or {}).get("weeklyplans", {}) or {}).items()
         }
         return weeklyplans.get(self._child, {})
@@ -528,13 +545,13 @@ class ForaeldreIntraChildWeekplanGeneralSensor(ForaeldreIntraBaseSensor):
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra ugeplan generelt ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_weekplan_general_{slugify(self._child)}"
 
     def _get_raw_plan(self) -> dict[str, Any]:
         weeklyplans = {
-            _decode_display_value(name) or "": _decode_weekplan(plan or {})
+            _decode_child_name(name): _decode_weekplan(plan or {})
             for name, plan in ((self.coordinator.data or {}).get("weeklyplans", {}) or {}).items()
         }
         return dict(weeklyplans.get(self._child, {}) or {})
@@ -581,13 +598,13 @@ class ForaeldreIntraChildWeekplanFocusSensor(ForaeldreIntraBaseSensor):
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra ugeplan fokus ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_weekplan_focus_{slugify(self._child)}"
 
     def _get_raw_plan(self) -> dict[str, Any]:
         weeklyplans = {
-            _decode_display_value(name) or "": _decode_weekplan(plan or {})
+            _decode_child_name(name): _decode_weekplan(plan or {})
             for name, plan in ((self.coordinator.data or {}).get("weeklyplans", {}) or {}).items()
         }
         return dict(weeklyplans.get(self._child, {}) or {})
@@ -634,13 +651,13 @@ class ForaeldreIntraChildWeekplanScheduleSensor(ForaeldreIntraBaseSensor):
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)
-        self._child = _decode_display_value(child_name) or ""
+        self._child = _decode_child_name(child_name)
         self._attr_name = f"ForældreIntra ugeplan skema ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_weekplan_schedule_{slugify(self._child)}"
 
     def _get_raw_plan(self) -> dict[str, Any]:
         weeklyplans = {
-            _decode_display_value(name) or "": _decode_weekplan(plan or {})
+            _decode_child_name(name): _decode_weekplan(plan or {})
             for name, plan in ((self.coordinator.data or {}).get("weeklyplans", {}) or {}).items()
         }
         return dict(weeklyplans.get(self._child, {}) or {})

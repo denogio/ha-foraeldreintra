@@ -15,6 +15,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import ForaldreIntraCoordinator
+from .decoding import _decode_child_name
 from .homework_status import HomeworkStatusStore
 from .services import async_register_services, async_unregister_services
 
@@ -54,7 +55,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Fjern entities fra entity registry som ikke længere er valgt."""
         reg = er.async_get(hass)
 
-        selected_names = set(updated_entry.options.get(OPT_SELECTED_CHILDREN, []))
+        selected_names = {
+            _decode_child_name(name)
+            for name in updated_entry.options.get(OPT_SELECTED_CHILDREN, [])
+        }
         selected_slugs = {slugify(n) for n in selected_names}
 
         prefixes = [
