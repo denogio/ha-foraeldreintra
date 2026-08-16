@@ -5,13 +5,13 @@ from zoneinfo import ZoneInfo
 
 from custom_components.foraeldreintra.api import Child
 from custom_components.foraeldreintra.calendar import (
-    ForaeldreIntraScheduleCalendar,
-    _schedule_events,
+    ForaeldreIntraTimetableCalendar,
+    _timetable_events,
 )
 
 
-def test_schedule_events_marks_substitute_and_adds_description():
-    schedule = {
+def test_timetable_events_marks_substitute_and_adds_description():
+    timetable = {
         "lessons": [
             {
                 "date": "2026-08-24",
@@ -24,7 +24,7 @@ def test_schedule_events_marks_substitute_and_adds_description():
         ]
     }
 
-    events = _schedule_events(schedule, "Testbarn")
+    events = _timetable_events(timetable, "Testbarn")
 
     assert len(events) == 1
     assert events[0].summary == "Matematik (vikar)"
@@ -44,7 +44,7 @@ def test_calendar_fetches_each_week_in_requested_range():
         def __init__(self):
             self.requested_dates = []
 
-        async def get_schedule_for_child(self, child, week_date):
+        async def get_timetable_for_child(self, child, week_date):
             self.requested_dates.append(week_date)
             return {
                 "lessons": [
@@ -58,9 +58,9 @@ def test_calendar_fetches_each_week_in_requested_range():
             }
 
     client = FakeClient()
-    coordinator = SimpleNamespace(client=client, data={"schedules": {}})
+    coordinator = SimpleNamespace(client=client, data={"timetables": {}})
     entry = SimpleNamespace(entry_id="test-entry")
-    entity = ForaeldreIntraScheduleCalendar(
+    entity = ForaeldreIntraTimetableCalendar(
         coordinator,
         entry,
         Child(id="123", name="Testbarn"),
@@ -78,8 +78,8 @@ def test_calendar_fetches_each_week_in_requested_range():
     assert [event.start.date() for event in events] == [date(2026, 8, 24), date(2026, 8, 31)]
 
 
-def test_schedule_events_skips_malformed_lessons_and_sorts_events():
-    schedule = {
+def test_timetable_events_skips_malformed_lessons_and_sorts_events():
+    timetable = {
         "lessons": [
             {"date": "invalid", "start": "08:00", "end": "09:00", "subject": "Fejl"},
             {"date": "2026-08-25", "start": "10:00", "end": "11:00", "subject": "Dansk"},
@@ -87,6 +87,6 @@ def test_schedule_events_skips_malformed_lessons_and_sorts_events():
         ]
     }
 
-    events = _schedule_events(schedule, "Testbarn")
+    events = _timetable_events(timetable, "Testbarn")
 
     assert [event.summary for event in events] == ["Idræt", "Dansk"]

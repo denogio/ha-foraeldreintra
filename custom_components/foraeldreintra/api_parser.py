@@ -210,8 +210,8 @@ def _parse_weekplan_page(
     }
 
 
-def _parse_schedule_page(html_text: str, url: str) -> dict[str, Any]:
-    """Parse the grid returned by the separate SkoleIntra schedule endpoint."""
+def _parse_timetable_page(html_text: str, url: str) -> dict[str, Any]:
+    """Parse the grid returned by the separate SkoleIntra timetable endpoint."""
     soup = BeautifulSoup(html_text, "html.parser")
     container = soup.select_one(".sk-schedule-table-container")
     if not container:
@@ -335,6 +335,10 @@ def _parse_schedule_page(html_text: str, url: str) -> dict[str, Any]:
         "days": days,
         "lessons": lessons,
     }
+
+
+# Backwards-compatible name for callers from versions before 2.3.1.
+_parse_schedule_page = _parse_timetable_page
 
 
 def _clean_text(txt: str) -> str:

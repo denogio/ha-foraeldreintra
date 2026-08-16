@@ -17,7 +17,7 @@ from .const import (
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
-    DEFAULT_SHOW_SCHEDULE_SENSORS,
+    DEFAULT_SHOW_TIMETABLE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_FOCUS_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_GENERAL_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
@@ -25,6 +25,7 @@ from .const import (
     DEFAULT_SUBJECT_ALIASES,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     DOMAIN,
+    LEGACY_OPT_SHOW_SCHEDULE_SENSORS,
     OPT_ADD_HOMEWORK_MARKDOWN,
     OPT_ADD_WEEKPLAN_MARKDOWN,
     OPT_INCLUDE_WEEKPLAN_FOCUS,
@@ -32,7 +33,7 @@ from .const import (
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
-    OPT_SHOW_SCHEDULE_SENSORS,
+    OPT_SHOW_TIMETABLE_SENSORS,
     OPT_SHOW_WEEKPLAN_FOCUS_SENSORS,
     OPT_SHOW_WEEKPLAN_GENERAL_SENSORS,
     OPT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
@@ -265,7 +266,15 @@ async def async_setup_entry(
     entities: list[SensorEntity] = []
 
     show_homework = bool(entry.options.get(OPT_SHOW_HOMEWORK_SENSORS, DEFAULT_SHOW_HOMEWORK_SENSORS))
-    show_schedule = bool(entry.options.get(OPT_SHOW_SCHEDULE_SENSORS, DEFAULT_SHOW_SCHEDULE_SENSORS))
+    show_timetable = bool(
+        entry.options.get(
+            OPT_SHOW_TIMETABLE_SENSORS,
+            entry.options.get(
+                LEGACY_OPT_SHOW_SCHEDULE_SENSORS,
+                DEFAULT_SHOW_TIMETABLE_SENSORS,
+            ),
+        )
+    )
     show_weekplan = bool(entry.options.get(OPT_SHOW_WEEKPLAN_SENSORS, DEFAULT_SHOW_WEEKPLAN_SENSORS))
     show_weekplan_general_sensors = bool(
         entry.options.get(OPT_SHOW_WEEKPLAN_GENERAL_SENSORS, DEFAULT_SHOW_WEEKPLAN_GENERAL_SENSORS)
@@ -287,8 +296,8 @@ async def async_setup_entry(
         if show_homework:
             entities.append(ForaeldreIntraChildHomeworkSensor(hass, coordinator, entry, child_name))
 
-        if show_schedule:
-            entities.append(ForaeldreIntraChildScheduleSensor(coordinator, entry, child_name))
+        if show_timetable:
+            entities.append(ForaeldreIntraChildTimetableSensor(coordinator, entry, child_name))
 
         if show_weekplan:
             entities.append(ForaeldreIntraChildWeekplanSensor(coordinator, entry, child_name))
@@ -390,7 +399,7 @@ class ForaeldreIntraChildHomeworkSensor(ForaeldreIntraBaseSensor):
         return attrs
 
 
-class ForaeldreIntraChildScheduleSensor(ForaeldreIntraBaseSensor):
+class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
     _attr_icon = "mdi:calendar-clock"
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
@@ -399,28 +408,28 @@ class ForaeldreIntraChildScheduleSensor(ForaeldreIntraBaseSensor):
         self._attr_name = f"ForældreIntra skoleskema ({self._child})"
         self._attr_unique_id = f"{entry.entry_id}_schedule_{slugify(self._child)}"
 
-    def _get_schedule(self) -> dict[str, Any]:
-        schedules = {
-            _decode_display_value(name) or "": dict(schedule or {})
-            for name, schedule in ((self.coordinator.data or {}).get("schedules", {}) or {}).items()
+    def _get_timetable(self) -> dict[str, Any]:
+        timetables = {
+            _decode_display_value(name) or "": dict(timetable or {})
+            for name, timetable in ((self.coordinator.data or {}).get("timetables", {}) or {}).items()
         }
-        return schedules.get(self._child, {})
+        return timetables.get(self._child, {})
 
     @property
     def native_value(self) -> str:
-        return _week_short(self._get_schedule().get("week")) or "ingen"
+        return _week_short(self._get_timetable().get("week")) or "ingen"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        schedule = self._get_schedule()
+        timetable = self._get_timetable()
         return {
             "barn": self._child,
-            "title": _decode_display_value(schedule.get("title")) or "Skoleskema",
-            "week": _week_short(schedule.get("week")),
-            "week_start": schedule.get("week_start"),
-            "url": schedule.get("url"),
-            "lessons": schedule.get("lessons", []),
-            "days": schedule.get("days", []),
+            "title": _decode_display_value(timetable.get("title")) or "Skoleskema",
+            "week": _week_short(timetable.get("week")),
+            "week_start": timetable.get("week_start"),
+            "url": timetable.get("url"),
+            "lessons": timetable.get("lessons", []),
+            "days": timetable.get("days", []),
         }
 
 

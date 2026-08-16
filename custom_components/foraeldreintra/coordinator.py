@@ -109,13 +109,13 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         items = await self.client.get_homework_for_children(children) if children else []
         weeklyplans = await self.client.get_weekplans_for_children(children) if children else {}
-        schedules = await self.client.get_schedules_for_children(children) if children else {}
+        timetables = await self.client.get_timetables_for_children(children) if children else {}
 
         return {
             "children": [{"id": c.id, "name": c.name} for c in children],
             "items": items,
             "weeklyplans": weeklyplans,
-            "schedules": schedules,
+            "timetables": timetables,
         }
 
     def _is_valid_result(self, data: dict[str, Any] | None) -> bool:
@@ -125,7 +125,7 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         children = data.get("children") or []
         weeklyplans = data.get("weeklyplans") or {}
         items = data.get("items") or []
-        schedules = data.get("schedules") or {}
+        timetables = data.get("timetables") or {}
 
         # Hvis vi slet ikke har børn, er resultatet ikke brugbart
         if not children:
@@ -133,7 +133,7 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Hvis der er børn men både ugeplaner og lektier er helt tomme,
         # er det ofte tegn på udløbet session / fejlsvar snarere end reel "ingen data".
-        if not weeklyplans and not items and not schedules:
+        if not weeklyplans and not items and not timetables:
             return False
 
         return True

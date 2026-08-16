@@ -14,7 +14,7 @@ from .api_parser import (
     _extract_diary_id,
     _extract_latest_weekplan_from_list,
     _parse_homework_notes,
-    _parse_schedule_page,
+    _parse_timetable_page,
     _parse_weekplan_page,
 )
 
@@ -58,7 +58,7 @@ class ForaldreIntraClient:
 
         self._home_html: str | None = None
         self._home_url: str | None = None
-        self._schedule_cache: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
+        self._timetable_cache: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 
     async def login(self) -> None:
         """Login og cache den første parent-side vi lander på."""
@@ -215,33 +215,33 @@ class ForaldreIntraClient:
         )
         return all_items
 
-    async def get_schedules_for_children(
+    async def get_timetables_for_children(
         self,
         children: list[Child],
         week_date: date | str | None = None,
     ) -> dict[str, dict[str, Any]]:
-        """Fetch the independent school schedule for each selected child."""
+        """Fetch the independent school timetable for each selected child."""
         result: dict[str, dict[str, Any]] = {}
         for child in children:
             try:
-                result[child.name] = await self.get_schedule_for_child(child, week_date)
+                result[child.name] = await self.get_timetable_for_child(child, week_date)
             except ForaldreIntraError:
-                # Some schools do not expose the optional schedule module.
+                # Some schools do not expose the optional timetable module.
                 continue
         return result
 
-    async def get_schedule_for_child(
+    async def get_timetable_for_child(
         self,
         child: Child,
         week_date: date | str | None = None,
     ) -> dict[str, Any]:
-        """Fetch and parse one child's schedule for the week containing a date."""
+        """Fetch and parse one child's timetable for the week containing a date."""
         target_date = date.fromisoformat(week_date) if isinstance(week_date, str) else week_date
         target_date = target_date or date.today()
         monday = target_date - timedelta(days=target_date.weekday())
         week_start = monday.isoformat()
         cache_key = (child.id, week_start)
-        cached = self._schedule_cache.get(cache_key)
+        cached = self._timetable_cache.get(cache_key)
         if cached and monotonic() - cached[0] < 15 * 60:
             return cached[1]
 
@@ -250,10 +250,26 @@ class ForaldreIntraClient:
             f"?weekStartDate={week_start}"
         )
         html_text = await self._get_text(schedule_url)
-        parsed = _parse_schedule_page(html_text, schedule_url)
+        parsed = _parse_timetable_page(html_text, schedule_url)
         parsed["barn"] = child.name
-        self._schedule_cache[cache_key] = (monotonic(), parsed)
+        self._timetable_cache[cache_key] = (monotonic(), parsed)
         return parsed
+
+    async def get_schedules_for_children(
+        self,
+        children: list[Child],
+        week_date: date | str | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Backward-compatible alias for get_timetables_for_children."""
+        return await self.get_timetables_for_children(children, week_date)
+
+    async def get_schedule_for_child(
+        self,
+        child: Child,
+        week_date: date | str | None = None,
+    ) -> dict[str, Any]:
+        """Backward-compatible alias for get_timetable_for_child."""
+        return await self.get_timetable_for_child(child, week_date)
 
     async def get_weekplans_for_children(
         self,

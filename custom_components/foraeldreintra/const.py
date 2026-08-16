@@ -16,12 +16,16 @@ DEFAULT_SHOW_HOMEWORK_SENSORS = True
 OPT_ADD_HOMEWORK_MARKDOWN = "add_homework_markdown"
 DEFAULT_ADD_HOMEWORK_MARKDOWN = False
 
-# Skoleskema (separat fra ugeplan)
-OPT_SHOW_SCHEDULE_SENSORS = "show_schedule_sensors"
-DEFAULT_SHOW_SCHEDULE_SENSORS = True
+# Skoleskema/timetable (separat fra ugeplan)
+OPT_SHOW_TIMETABLE_SENSORS = "show_timetable_sensors"
+DEFAULT_SHOW_TIMETABLE_SENSORS = True
 
-OPT_SHOW_SCHEDULE_CALENDARS = "show_schedule_calendars"
-DEFAULT_SHOW_SCHEDULE_CALENDARS = True
+OPT_SHOW_TIMETABLE_CALENDARS = "show_timetable_calendars"
+DEFAULT_SHOW_TIMETABLE_CALENDARS = True
+
+# Legacy option keys from v2.2.0-v2.3.0.
+LEGACY_OPT_SHOW_SCHEDULE_SENSORS = "show_schedule_sensors"
+LEGACY_OPT_SHOW_SCHEDULE_CALENDARS = "show_schedule_calendars"
 
 # Ugeplan - sensorer
 OPT_SHOW_WEEKPLAN_SENSORS = "show_weekplan_sensors"

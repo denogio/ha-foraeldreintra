@@ -13,10 +13,11 @@ from homeassistant.util import slugify
 
 from .api import Child, ForaldreIntraError
 from .const import (
-    DEFAULT_SHOW_SCHEDULE_CALENDARS,
+    DEFAULT_SHOW_TIMETABLE_CALENDARS,
     DOMAIN,
+    LEGACY_OPT_SHOW_SCHEDULE_CALENDARS,
     OPT_SELECTED_CHILDREN,
-    OPT_SHOW_SCHEDULE_CALENDARS,
+    OPT_SHOW_TIMETABLE_CALENDARS,
 )
 from .coordinator import ForaldreIntraCoordinator
 from .decoding import _decode_display_value
@@ -29,11 +30,14 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up one school schedule calendar per selected child."""
+    """Set up one school timetable calendar per selected child."""
     if not bool(
         entry.options.get(
-            OPT_SHOW_SCHEDULE_CALENDARS,
-            DEFAULT_SHOW_SCHEDULE_CALENDARS,
+            OPT_SHOW_TIMETABLE_CALENDARS,
+            entry.options.get(
+                LEGACY_OPT_SHOW_SCHEDULE_CALENDARS,
+                DEFAULT_SHOW_TIMETABLE_CALENDARS,
+            ),
         )
     ):
         return
@@ -53,7 +57,7 @@ async def async_setup_entry(
     }
 
     entities = [
-        ForaeldreIntraScheduleCalendar(coordinator, entry, child)
+        ForaeldreIntraTimetableCalendar(coordinator, entry, child)
         for child in children
         if not selected_children or _decode_display_value(child.name) in selected_children
     ]
@@ -68,9 +72,9 @@ def _as_local_datetime(value: date | datetime) -> datetime:
     return datetime.combine(value, time.min, tzinfo=_LOCAL_TIMEZONE)
 
 
-def _schedule_events(schedule: dict[str, Any], child_name: str) -> list[CalendarEvent]:
+def _timetable_events(timetable: dict[str, Any], child_name: str) -> list[CalendarEvent]:
     events: list[CalendarEvent] = []
-    for lesson in schedule.get("lessons", []) or []:
+    for lesson in timetable.get("lessons", []) or []:
         try:
             lesson_date = date.fromisoformat(str(lesson["date"]))
             start_time = time.fromisoformat(str(lesson["start"]))
@@ -99,11 +103,11 @@ def _schedule_events(schedule: dict[str, Any], child_name: str) -> list[Calendar
     return sorted(events, key=lambda event: event.start)
 
 
-class ForaeldreIntraScheduleCalendar(
+class ForaeldreIntraTimetableCalendar(
     CoordinatorEntity[ForaldreIntraCoordinator],
     CalendarEntity,
 ):
-    """A Home Assistant calendar backed by SkoleIntra's schedule endpoint."""
+    """A Home Assistant calendar backed by SkoleIntra's timetable endpoint."""
 
     _attr_icon = "mdi:calendar-school"
 
@@ -119,11 +123,11 @@ class ForaeldreIntraScheduleCalendar(
         self._attr_name = f"ForældreIntra skoleskema ({self._child_display_name})"
         self._attr_unique_id = f"{entry.entry_id}_calendar_{slugify(self._child_display_name)}"
 
-    def _current_schedule(self) -> dict[str, Any]:
-        schedules = (self.coordinator.data or {}).get("schedules", {}) or {}
-        for name, schedule in schedules.items():
+    def _current_timetable(self) -> dict[str, Any]:
+        timetables = (self.coordinator.data or {}).get("timetables", {}) or {}
+        for name, timetable in timetables.items():
             if _decode_display_value(name) == self._child_display_name:
-                return dict(schedule or {})
+                return dict(timetable or {})
         return {}
 
     @property
@@ -133,8 +137,8 @@ class ForaeldreIntraScheduleCalendar(
         return next(
             (
                 event
-                for event in _schedule_events(
-                    self._current_schedule(),
+                for event in _timetable_events(
+                    self._current_timetable(),
                     self._child_display_name,
                 )
                 if _as_local_datetime(event.end) > now
@@ -156,7 +160,7 @@ class ForaeldreIntraScheduleCalendar(
 
         while datetime.combine(monday, time.min, tzinfo=_LOCAL_TIMEZONE) < range_end:
             try:
-                schedule = await self.coordinator.client.get_schedule_for_child(
+                timetable = await self.coordinator.client.get_timetable_for_child(
                     self._child,
                     monday,
                 )
@@ -164,7 +168,7 @@ class ForaeldreIntraScheduleCalendar(
                 monday += timedelta(days=7)
                 continue
 
-            events.extend(_schedule_events(schedule, self._child_display_name))
+            events.extend(_timetable_events(timetable, self._child_display_name))
             monday += timedelta(days=7)
 
         return [

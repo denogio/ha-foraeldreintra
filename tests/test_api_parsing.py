@@ -11,7 +11,7 @@ from custom_components.foraeldreintra.api_parser import (
     _extract_latest_weekplan_from_list,
     _html_to_text,
     _parse_homework_notes,
-    _parse_schedule_page,
+    _parse_timetable_page,
     _parse_weekplan_page,
 )
 
@@ -275,14 +275,14 @@ class TestExtractLatestWeekplanFromList:
         assert _extract_latest_weekplan_from_list("") is None
 
 
-class TestParseSchedulePage:
+class TestParseTimetablePage:
     def test_parses_week_days_times_and_lessons(self):
-        html_text = (Path(__file__).parent / "fixtures" / "schedule.html").read_text()
-        result = _parse_schedule_page(html_text, "https://example.com/schedule")
+        html_text = (Path(__file__).parent / "fixtures" / "timetable.html").read_text()
+        result = _parse_timetable_page(html_text, "https://example.com/timetable")
 
         assert result["week"] == "34-2026"
         assert result["week_start"] == "2026-08-17"
-        assert result["url"] == "https://example.com/schedule"
+        assert result["url"] == "https://example.com/timetable"
         assert len(result["days"]) == 2
         assert len(result["lessons"]) == 3
         assert result["days"][0]["day"] == "Mandag"
@@ -292,8 +292,8 @@ class TestParseSchedulePage:
         assert result["lessons"][0]["subject"] == "Dansk"
 
     def test_parses_substitute_teacher_block(self):
-        html_text = (Path(__file__).parent / "fixtures" / "schedule.html").read_text()
-        result = _parse_schedule_page(html_text, "https://example.com/schedule")
+        html_text = (Path(__file__).parent / "fixtures" / "timetable.html").read_text()
+        result = _parse_timetable_page(html_text, "https://example.com/timetable")
 
         lesson = result["days"][1]["lessons"][0]
         assert lesson["subject"] == "Matematik"
@@ -304,7 +304,7 @@ class TestParseSchedulePage:
         assert lesson["substitute_text"] == "Viggo Vikar er vikar for Frida Fraværende"
 
     def test_missing_schedule_container_returns_empty_schedule(self):
-        result = _parse_schedule_page("<html></html>", "https://example.com/schedule")
+        result = _parse_timetable_page("<html></html>", "https://example.com/timetable")
         assert result["week"] is None
         assert result["days"] == []
         assert result["lessons"] == []
