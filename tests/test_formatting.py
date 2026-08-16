@@ -188,6 +188,11 @@ class TestApplySubjectAlias:
     def test_case_insensitive_lookup(self):
         assert _apply_subject_alias("dan", {"DAN": "Dansk"}) == "Dansk"
 
+    def test_trailing_period_is_ignored(self):
+        aliases = _parse_subject_aliases("MU/F.=Fælles musik")
+        assert _apply_subject_alias("MU/F", aliases) == "Fælles musik"
+        assert _apply_subject_alias("MU/F.", aliases) == "Fælles musik"
+
     def test_empty_string_returns_empty(self):
         assert _apply_subject_alias("", {"DAN": "Dansk"}) == ""
 
@@ -196,6 +201,7 @@ class TestApplySubjectAlias:
         assert _apply_subject_alias("MAT", STANDARD_SUBJECT_ALIASES) == "Matematik"
         assert _apply_subject_alias("HDS", STANDARD_SUBJECT_ALIASES) == "Håndværk og Design"
         assert _apply_subject_alias("SVØ", STANDARD_SUBJECT_ALIASES) == "Svømning"
+        assert _apply_subject_alias("MU/F.", STANDARD_SUBJECT_ALIASES) == "Fælles musik"
         assert _apply_subject_alias("HIS", STANDARD_SUBJECT_ALIASES) == "Historie"
         assert _apply_subject_alias("KRI", STANDARD_SUBJECT_ALIASES) == "Kristendomskundskab"
         assert _apply_subject_alias("MAD", STANDARD_SUBJECT_ALIASES) == "Madkundskab"

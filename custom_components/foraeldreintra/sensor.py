@@ -426,6 +426,9 @@ class ForaeldreIntraChildHomeworkSensor(ForaeldreIntraBaseSensor):
 
 class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
     _attr_icon = "mdi:calendar-clock"
+    # Keep the complete live timetable available to dashboards/templates, but
+    # do not duplicate the large payload in Recorder on every coordinator update.
+    _unrecorded_attributes = frozenset({"days", "lessons"})
 
     def __init__(self, coordinator: ForaldreIntraCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator, entry)

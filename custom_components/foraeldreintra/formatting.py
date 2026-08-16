@@ -39,6 +39,7 @@ STANDARD_SUBJECT_ALIASES = {
     "HDS": "Håndværk og Design",
     "BIL": "Billedkunst",
     "MUS": "Musik",
+    "MU/F": "Fælles musik",
     "SVØ": "Svømning",
     "SVØM": "Svømning",
     "N/T": "Natur/Teknologi",
@@ -165,7 +166,7 @@ def _parse_subject_aliases(raw: str | None) -> dict[str, str]:
             continue
 
         key, value = line.split("=", 1)
-        key = key.strip().upper()
+        key = key.strip().upper().rstrip(".:")
         value = _decode_display_value(value) or ""
 
         if key:
@@ -189,7 +190,7 @@ def _apply_subject_alias(label: str, alias_map: dict[str, str]) -> str:
     if not cleaned:
         return ""
 
-    upper = cleaned.upper()
+    upper = cleaned.upper().rstrip(".:")
     if upper in alias_map:
         return alias_map[upper].strip()
 
@@ -239,7 +240,7 @@ def _apply_timetable_aliases(
             if not isinstance(configured_subjects, (list, tuple, set)):
                 configured_subjects = []
             hidden_subjects = {
-                str(subject).strip().upper()
+                str(subject).strip().upper().rstrip(".:")
                 for subject in configured_subjects
                 if str(subject).strip()
             }
@@ -249,7 +250,7 @@ def _apply_timetable_aliases(
         subject_raw = _decode_display_value(
             lesson.get("subject_raw") or lesson.get("subject")
         ) or ""
-        subject_code = subject_raw.upper()
+        subject_code = subject_raw.upper().rstrip(".:")
         lesson["subject_raw"] = subject_raw
         aliased_subject = _apply_subject_alias(subject_raw, subject_aliases)
         lesson["subject"] = aliased_subject or subject_raw
