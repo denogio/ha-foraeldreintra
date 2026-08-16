@@ -25,6 +25,7 @@ from .const import (
     DEFAULT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_SENSORS,
     DEFAULT_SUBJECT_ALIASES,
+    DEFAULT_TEACHER_ALIASES,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
     DOMAIN,
@@ -44,6 +45,7 @@ from .const import (
     OPT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
     OPT_SHOW_WEEKPLAN_SENSORS,
     OPT_SUBJECT_ALIASES,
+    OPT_TEACHER_ALIASES,
     OPT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     OPT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
 )
@@ -207,6 +209,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             cleaned[OPT_SUBJECT_ALIASES] = str(
                 cleaned.get(OPT_SUBJECT_ALIASES, DEFAULT_SUBJECT_ALIASES) or ""
             ).strip()
+            cleaned[OPT_TEACHER_ALIASES] = str(
+                cleaned.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""
+            ).strip()
 
             return self.async_create_entry(title="", data=cleaned)
 
@@ -348,6 +353,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(
                 OPT_SUBJECT_ALIASES,
                 default=str(existing.get(OPT_SUBJECT_ALIASES, DEFAULT_SUBJECT_ALIASES) or ""),
+            )
+        ] = str
+        schema_dict[
+            vol.Optional(
+                OPT_TEACHER_ALIASES,
+                default=str(existing.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""),
             )
         ] = str
 

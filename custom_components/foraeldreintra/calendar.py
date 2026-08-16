@@ -14,13 +14,22 @@ from homeassistant.util import slugify
 from .api import Child, ForaldreIntraError
 from .const import (
     DEFAULT_SHOW_TIMETABLE_CALENDARS,
+    DEFAULT_SUBJECT_ALIASES,
+    DEFAULT_TEACHER_ALIASES,
     DOMAIN,
     LEGACY_OPT_SHOW_SCHEDULE_CALENDARS,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_TIMETABLE_CALENDARS,
+    OPT_SUBJECT_ALIASES,
+    OPT_TEACHER_ALIASES,
 )
 from .coordinator import ForaldreIntraCoordinator
 from .decoding import _decode_display_value
+from .formatting import (
+    _apply_timetable_aliases,
+    _build_subject_alias_map,
+    _build_teacher_alias_map,
+)
 
 _LOCAL_TIMEZONE = ZoneInfo("Europe/Copenhagen")
 
@@ -72,9 +81,19 @@ def _as_local_datetime(value: date | datetime) -> datetime:
     return datetime.combine(value, time.min, tzinfo=_LOCAL_TIMEZONE)
 
 
-def _timetable_events(timetable: dict[str, Any], child_name: str) -> list[CalendarEvent]:
+def _timetable_events(
+    timetable: dict[str, Any],
+    child_name: str,
+    subject_aliases: dict[str, str] | None = None,
+    teacher_aliases: dict[str, str] | None = None,
+) -> list[CalendarEvent]:
+    translated = _apply_timetable_aliases(
+        timetable,
+        subject_aliases or {},
+        teacher_aliases or {},
+    )
     events: list[CalendarEvent] = []
-    for lesson in timetable.get("lessons", []) or []:
+    for lesson in translated.get("lessons", []) or []:
         try:
             lesson_date = date.fromisoformat(str(lesson["date"]))
             start_time = time.fromisoformat(str(lesson["start"]))
@@ -118,10 +137,21 @@ class ForaeldreIntraTimetableCalendar(
         child: Child,
     ) -> None:
         super().__init__(coordinator)
+        self._entry = entry
         self._child = child
         self._child_display_name = _decode_display_value(child.name) or child.name
         self._attr_name = f"ForældreIntra skoleskema ({self._child_display_name})"
         self._attr_unique_id = f"{entry.entry_id}_calendar_{slugify(self._child_display_name)}"
+
+    def _subject_aliases(self) -> dict[str, str]:
+        return _build_subject_alias_map(
+            self._entry.options.get(OPT_SUBJECT_ALIASES, DEFAULT_SUBJECT_ALIASES)
+        )
+
+    def _teacher_aliases(self) -> dict[str, str]:
+        return _build_teacher_alias_map(
+            self._entry.options.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES)
+        )
 
     def _current_timetable(self) -> dict[str, Any]:
         timetables = (self.coordinator.data or {}).get("timetables", {}) or {}
@@ -140,6 +170,8 @@ class ForaeldreIntraTimetableCalendar(
                 for event in _timetable_events(
                     self._current_timetable(),
                     self._child_display_name,
+                    self._subject_aliases(),
+                    self._teacher_aliases(),
                 )
                 if _as_local_datetime(event.end) > now
             ),
@@ -168,7 +200,14 @@ class ForaeldreIntraTimetableCalendar(
                 monday += timedelta(days=7)
                 continue
 
-            events.extend(_timetable_events(timetable, self._child_display_name))
+            events.extend(
+                _timetable_events(
+                    timetable,
+                    self._child_display_name,
+                    self._subject_aliases(),
+                    self._teacher_aliases(),
+                )
+            )
             monday += timedelta(days=7)
 
         return [

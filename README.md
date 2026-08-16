@@ -172,6 +172,8 @@ Kortet læser disse data fra `hass.states` og viser dem i dashboardet.
 
 Integrationen opretter desuden `ForældreIntra skoleskema (<barn>)` som kalender og sensor for hvert valgt barn. Hver lektion vises som en kalenderbegivenhed med fag, start- og sluttid. Vikarlektioner får `(vikar)` i kalenderens titel og vikardetaljerne i beskrivelsen. Sensorens tilstand er det aktuelle ugenummer, mens attributterne `days` og `lessons` indeholder de strukturerede rådata. Skoleskemaet hentes fra SkoleIntras separate skemamodul og virker derfor også, når ugeplanen ikke er publiceret.
 
+Under integrationens indstillinger kan fagforkortelser og lærerinitialer oversættes med `FORKORTELSE=Visningsnavn`, fx `HDS=Håndværk og Design`, `SVØ=Svømning` og `ABC=Anna Andersen`. Kalenderen og timetable-sensoren bevarer samtidig råværdierne i felter med suffikset `_raw`. Valgfrie aktiviteter som `INDKOR` og `MELBAND` markeres som valgfri. Hvis de ikke gælder for familien, kan de skjules med en tom oversættelse, fx `INDKOR=` eller `MELBAND=`.
+
 Kortet kan blandt andet bruge disse oplysninger fra lektiesensoren:
 
 - barn

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import html
 import re
 from datetime import date, datetime
@@ -30,8 +31,10 @@ STANDARD_SUBJECT_ALIASES = {
     "MAT": "Matematik",
     "ENG": "Engelsk",
     "IDR": "Idræt",
+    "HDS": "Håndværk og Design",
     "BIL": "Billedkunst",
     "MUS": "Musik",
+    "SVØ": "Svømning",
     "SVØM": "Svømning",
     "N/T": "Natur/Teknologi",
     "KRIS": "Kristendomskundskab",
@@ -39,6 +42,8 @@ STANDARD_SUBJECT_ALIASES = {
     "BOOS": "Booster",
     "PÆD": "Pædagog",
     "KOR": "Kor",
+    "INDKOR": "Indskolingskor (valgfrit)",
+    "MELBAND": "Mellemtrinsband (valgfrit)",
     "STØTTE": "Støtte",
     "CO-TEACHER": "Co-teacher",
     "MASTER": "Master Class",
@@ -158,6 +163,16 @@ def _parse_subject_aliases(raw: str | None) -> dict[str, str]:
     return aliases
 
 
+def _build_subject_alias_map(raw: str | None) -> dict[str, str]:
+    aliases = dict(STANDARD_SUBJECT_ALIASES)
+    aliases.update(_parse_subject_aliases(raw))
+    return aliases
+
+
+def _build_teacher_alias_map(raw: str | None) -> dict[str, str]:
+    return _parse_subject_aliases(raw)
+
+
 def _apply_subject_alias(label: str, alias_map: dict[str, str]) -> str:
     cleaned = (_decode_display_value(label) or "").strip()
     if not cleaned:
@@ -168,6 +183,64 @@ def _apply_subject_alias(label: str, alias_map: dict[str, str]) -> str:
         return alias_map[upper].strip()
 
     return cleaned
+
+
+def _apply_timetable_aliases(
+    timetable: dict[str, Any],
+    subject_aliases: dict[str, str],
+    teacher_aliases: dict[str, str],
+) -> dict[str, Any]:
+    """Apply display aliases while retaining raw timetable values."""
+    translated = copy.deepcopy(timetable)
+
+    def translate_lesson(lesson: dict[str, Any]) -> bool:
+        subject_raw = _decode_display_value(
+            lesson.get("subject_raw") or lesson.get("subject")
+        ) or ""
+        lesson["subject_raw"] = subject_raw
+        lesson["subject"] = _apply_subject_alias(subject_raw, subject_aliases)
+        lesson["hidden"] = (
+            subject_raw.upper() in subject_aliases
+            and not lesson["subject"]
+        )
+
+        for field in ("substitute_teacher", "absent_teacher"):
+            raw_field = f"{field}_raw"
+            raw_value = _decode_display_value(lesson.get(raw_field) or lesson.get(field))
+            lesson[raw_field] = raw_value
+            lesson[field] = (
+                _apply_subject_alias(raw_value, teacher_aliases)
+                if raw_value
+                else None
+            )
+
+        substitute_text = _decode_display_value(lesson.get("substitute_text"))
+        lesson["substitute_text_raw"] = (
+            _decode_display_value(lesson.get("substitute_text_raw"))
+            or substitute_text
+        )
+        if lesson.get("substitute_teacher") and lesson.get("absent_teacher"):
+            lesson["substitute_text"] = (
+                f"{lesson['substitute_teacher']} er vikar for {lesson['absent_teacher']}"
+            )
+        return not lesson["hidden"]
+
+    translated["lessons"] = [
+        lesson
+        for lesson in translated.get("lessons", []) or []
+        if isinstance(lesson, dict) and translate_lesson(lesson)
+    ]
+
+    for day in translated.get("days", []) or []:
+        if not isinstance(day, dict):
+            continue
+        day["lessons"] = [
+            lesson
+            for lesson in day.get("lessons", []) or []
+            if isinstance(lesson, dict) and translate_lesson(lesson)
+        ]
+
+    return translated
 
 
 def _pretty_title_case(s: str) -> str:

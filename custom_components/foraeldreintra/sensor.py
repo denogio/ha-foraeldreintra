@@ -23,6 +23,7 @@ from .const import (
     DEFAULT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_SENSORS,
     DEFAULT_SUBJECT_ALIASES,
+    DEFAULT_TEACHER_ALIASES,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     DOMAIN,
     LEGACY_OPT_SHOW_SCHEDULE_SENSORS,
@@ -39,15 +40,18 @@ from .const import (
     OPT_SHOW_WEEKPLAN_SCHEDULE_SENSORS,
     OPT_SHOW_WEEKPLAN_SENSORS,
     OPT_SUBJECT_ALIASES,
+    OPT_TEACHER_ALIASES,
     OPT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     OPT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
 )
 from .coordinator import ForaldreIntraCoordinator
 from .decoding import _decode_display_value, _decode_homework_item, _decode_weekplan
 from .formatting import (
-    STANDARD_SUBJECT_ALIASES,
+    _apply_timetable_aliases,
     _build_display_title,
     _build_homework_markdown,
+    _build_subject_alias_map,
+    _build_teacher_alias_map,
     _build_weekplan_markdown,
     _extract_practice_text_from_general_content,
     _extract_year_from_weekplan,
@@ -55,7 +59,6 @@ from .formatting import (
     _lesson_matches_practice_marker,
     _normalize_subject_value,
     _parse_keyword_lines,
-    _parse_subject_aliases,
     _plan_focus_only,
     _plan_general_only,
     _plan_schedule_only,
@@ -329,10 +332,11 @@ class ForaeldreIntraBaseSensor(CoordinatorEntity[ForaldreIntraCoordinator], Sens
 
     def _subject_alias_map(self) -> dict[str, str]:
         raw = self._entry.options.get(OPT_SUBJECT_ALIASES, DEFAULT_SUBJECT_ALIASES)
-        user_aliases = _parse_subject_aliases(raw)
-        merged = dict(STANDARD_SUBJECT_ALIASES)
-        merged.update(user_aliases)
-        return merged
+        return _build_subject_alias_map(raw)
+
+    def _teacher_alias_map(self) -> dict[str, str]:
+        raw = self._entry.options.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES)
+        return _build_teacher_alias_map(raw)
 
 
 class ForaeldreIntraAllHomeworkSensor(ForaeldreIntraBaseSensor):
@@ -413,7 +417,12 @@ class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
             _decode_display_value(name) or "": dict(timetable or {})
             for name, timetable in ((self.coordinator.data or {}).get("timetables", {}) or {}).items()
         }
-        return timetables.get(self._child, {})
+        timetable = timetables.get(self._child, {})
+        return _apply_timetable_aliases(
+            timetable,
+            self._subject_alias_map(),
+            self._teacher_alias_map(),
+        )
 
     @property
     def native_value(self) -> str:

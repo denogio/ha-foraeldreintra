@@ -17,17 +17,24 @@ def test_timetable_events_marks_substitute_and_adds_description():
                 "date": "2026-08-24",
                 "start": "08:05",
                 "end": "09:05",
-                "subject": "Matematik",
+                "subject": "HDS",
                 "has_substitute": True,
-                "substitute_text": "Viggo Vikar er vikar for Frida Fraværende",
+                "substitute_teacher": "VV",
+                "absent_teacher": "FF",
+                "substitute_text": "VV er vikar for FF",
             }
         ]
     }
 
-    events = _timetable_events(timetable, "Testbarn")
+    events = _timetable_events(
+        timetable,
+        "Testbarn",
+        {"HDS": "Håndværk og Design"},
+        {"VV": "Viggo Vikar", "FF": "Frida Fraværende"},
+    )
 
     assert len(events) == 1
-    assert events[0].summary == "Matematik (vikar)"
+    assert events[0].summary == "Håndværk og Design (vikar)"
     assert events[0].description == (
         "Barn: Testbarn\nViggo Vikar er vikar for Frida Fraværende"
     )
@@ -59,7 +66,7 @@ def test_calendar_fetches_each_week_in_requested_range():
 
     client = FakeClient()
     coordinator = SimpleNamespace(client=client, data={"timetables": {}})
-    entry = SimpleNamespace(entry_id="test-entry")
+    entry = SimpleNamespace(entry_id="test-entry", options={})
     entity = ForaeldreIntraTimetableCalendar(
         coordinator,
         entry,

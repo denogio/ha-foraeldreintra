@@ -2,6 +2,7 @@ import pytest
 
 from custom_components.foraeldreintra.formatting import (
     _apply_subject_alias,
+    _apply_timetable_aliases,
     _build_display_title,
     _build_homework_markdown,
     _build_weekplan_markdown,
@@ -192,6 +193,64 @@ class TestApplySubjectAlias:
     def test_standard_aliases_work(self):
         assert _apply_subject_alias("DAN", STANDARD_SUBJECT_ALIASES) == "Dansk"
         assert _apply_subject_alias("MAT", STANDARD_SUBJECT_ALIASES) == "Matematik"
+        assert _apply_subject_alias("HDS", STANDARD_SUBJECT_ALIASES) == "Håndværk og Design"
+        assert _apply_subject_alias("SVØ", STANDARD_SUBJECT_ALIASES) == "Svømning"
+        assert _apply_subject_alias("INDKOR", STANDARD_SUBJECT_ALIASES) == "Indskolingskor (valgfrit)"
+        assert _apply_subject_alias("MELBAND", STANDARD_SUBJECT_ALIASES) == "Mellemtrinsband (valgfrit)"
+
+
+class TestApplyTimetableAliases:
+    def test_translates_subjects_and_teachers_and_preserves_raw_values(self):
+        timetable = {
+            "lessons": [
+                {
+                    "subject": "HDS",
+                    "substitute_teacher": "ABC",
+                    "absent_teacher": "DEF",
+                    "substitute_text": "ABC er vikar for DEF",
+                }
+            ],
+            "days": [],
+        }
+
+        result = _apply_timetable_aliases(
+            timetable,
+            {"HDS": "Håndværk og Design"},
+            {"ABC": "Anna Andersen", "DEF": "Dennis Eriksen"},
+        )
+        lesson = result["lessons"][0]
+
+        assert lesson["subject"] == "Håndværk og Design"
+        assert lesson["subject_raw"] == "HDS"
+        assert lesson["substitute_teacher"] == "Anna Andersen"
+        assert lesson["substitute_teacher_raw"] == "ABC"
+        assert lesson["absent_teacher"] == "Dennis Eriksen"
+        assert lesson["absent_teacher_raw"] == "DEF"
+        assert lesson["substitute_text"] == "Anna Andersen er vikar for Dennis Eriksen"
+        assert lesson["substitute_text_raw"] == "ABC er vikar for DEF"
+        assert timetable["lessons"][0]["subject"] == "HDS"
+
+    def test_empty_subject_alias_hides_optional_activity(self):
+        timetable = {
+            "lessons": [{"subject": "INDKOR"}, {"subject": "DAN"}],
+            "days": [
+                {
+                    "lessons": [
+                        {"subject": "INDKOR"},
+                        {"subject": "DAN"},
+                    ]
+                }
+            ],
+        }
+
+        result = _apply_timetable_aliases(
+            timetable,
+            {"INDKOR": "", "DAN": "Dansk"},
+            {},
+        )
+
+        assert [lesson["subject"] for lesson in result["lessons"]] == ["Dansk"]
+        assert [lesson["subject"] for lesson in result["days"][0]["lessons"]] == ["Dansk"]
 
 
 class TestPrettyTitleCase:
