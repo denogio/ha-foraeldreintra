@@ -61,6 +61,9 @@ DEFAULT_SUBJECT_ALIASES = ""
 OPT_TEACHER_ALIASES = "teacher_aliases"
 DEFAULT_TEACHER_ALIASES = ""
 
+OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD = "optional_timetable_subjects_by_child"
+DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD: dict[str, list[str]] = {}
+
 # Intern fast polling
 DEFAULT_SCAN_INTERVAL_MINUTES = 60
 

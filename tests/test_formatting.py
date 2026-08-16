@@ -195,8 +195,8 @@ class TestApplySubjectAlias:
         assert _apply_subject_alias("MAT", STANDARD_SUBJECT_ALIASES) == "Matematik"
         assert _apply_subject_alias("HDS", STANDARD_SUBJECT_ALIASES) == "Håndværk og Design"
         assert _apply_subject_alias("SVØ", STANDARD_SUBJECT_ALIASES) == "Svømning"
-        assert _apply_subject_alias("INDKOR", STANDARD_SUBJECT_ALIASES) == "Indskolingskor (valgfrit)"
-        assert _apply_subject_alias("MELBAND", STANDARD_SUBJECT_ALIASES) == "Mellemtrinsband (valgfrit)"
+        assert _apply_subject_alias("INDKOR", STANDARD_SUBJECT_ALIASES) == "Indskolingskor"
+        assert _apply_subject_alias("MELBAND", STANDARD_SUBJECT_ALIASES) == "Mellemtrinsband"
 
 
 class TestApplyTimetableAliases:
@@ -229,6 +229,48 @@ class TestApplyTimetableAliases:
         assert lesson["substitute_text"] == "Anna Andersen er vikar for Dennis Eriksen"
         assert lesson["substitute_text_raw"] == "ABC er vikar for DEF"
         assert timetable["lessons"][0]["subject"] == "HDS"
+
+    def test_optional_activities_are_filtered_per_child(self):
+        timetable = {
+            "lessons": [
+                {"subject": "INDKOR"},
+                {"subject": "MELBAND"},
+                {"subject": "DAN"},
+            ],
+            "days": [],
+        }
+
+        result = _apply_timetable_aliases(
+            timetable,
+            STANDARD_SUBJECT_ALIASES,
+            {},
+            "Anna",
+            {"Anna": ["INDKOR"], "Bo": []},
+        )
+
+        assert [lesson["subject_raw"] for lesson in result["lessons"]] == [
+            "INDKOR",
+            "DAN",
+        ]
+        assert result["lessons"][0]["subject"] == "Indskolingskor"
+        assert result["lessons"][0]["optional"] is True
+
+    def test_child_without_participation_configuration_keeps_optional_activities(self):
+        timetable = {
+            "lessons": [{"subject": "INDKOR"}],
+            "days": [],
+        }
+
+        result = _apply_timetable_aliases(
+            timetable,
+            STANDARD_SUBJECT_ALIASES,
+            {},
+            "Ukendt barn",
+            {"Anna": ["INDKOR"]},
+        )
+
+        assert len(result["lessons"]) == 1
+        assert result["lessons"][0]["optional"] is True
 
     def test_empty_subject_alias_hides_optional_activity(self):
         timetable = {

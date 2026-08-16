@@ -8,6 +8,7 @@ from custom_components.foraeldreintra.calendar import (
     ForaeldreIntraTimetableCalendar,
     _timetable_events,
 )
+from custom_components.foraeldreintra.formatting import STANDARD_SUBJECT_ALIASES
 
 
 def test_timetable_events_marks_substitute_and_adds_description():
@@ -44,6 +45,38 @@ def test_timetable_events_marks_substitute_and_adds_description():
     assert events[0].end == datetime(
         2026, 8, 24, 9, 5, tzinfo=ZoneInfo("Europe/Copenhagen")
     )
+
+
+def test_optional_calendar_event_is_filtered_per_child():
+    timetable = {
+        "lessons": [
+            {
+                "date": "2026-08-24",
+                "start": "14:00",
+                "end": "15:00",
+                "subject": "INDKOR",
+            }
+        ]
+    }
+
+    participating = _timetable_events(
+        timetable,
+        "Anna",
+        STANDARD_SUBJECT_ALIASES,
+        {},
+        {"Anna": ["INDKOR"], "Bo": []},
+    )
+    not_participating = _timetable_events(
+        timetable,
+        "Bo",
+        STANDARD_SUBJECT_ALIASES,
+        {},
+        {"Anna": ["INDKOR"], "Bo": []},
+    )
+
+    assert participating[0].summary == "Indskolingskor (valgfrit)"
+    assert "Valgfri aktivitet" in participating[0].description
+    assert not_participating == []
 
 
 def test_calendar_fetches_each_week_in_requested_range():

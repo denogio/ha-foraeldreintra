@@ -17,6 +17,7 @@ from .const import (
     DEFAULT_INCLUDE_WEEKPLAN_FOCUS,
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
+    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
     DEFAULT_SHOW_TIMETABLE_CALENDARS,
     DEFAULT_SHOW_TIMETABLE_SENSORS,
@@ -36,6 +37,7 @@ from .const import (
     OPT_INCLUDE_WEEKPLAN_FOCUS,
     OPT_INCLUDE_WEEKPLAN_GENERAL,
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
+    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
     OPT_SHOW_TIMETABLE_CALENDARS,
@@ -212,6 +214,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             cleaned[OPT_TEACHER_ALIASES] = str(
                 cleaned.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""
             ).strip()
+            optional_by_child = cleaned.get(
+                OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+            )
+            cleaned[OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD] = (
+                dict(optional_by_child) if isinstance(optional_by_child, dict) else {}
+            )
 
             return self.async_create_entry(title="", data=cleaned)
 
@@ -361,6 +370,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=str(existing.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""),
             )
         ] = str
+        schema_dict[
+            vol.Optional(
+                OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                default=existing.get(
+                    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                ),
+            )
+        ] = selector.ObjectSelector()
 
         return self.async_show_form(
             step_id="init",

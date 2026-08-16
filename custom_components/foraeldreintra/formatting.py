@@ -42,12 +42,14 @@ STANDARD_SUBJECT_ALIASES = {
     "BOOS": "Booster",
     "PÆD": "Pædagog",
     "KOR": "Kor",
-    "INDKOR": "Indskolingskor (valgfrit)",
-    "MELBAND": "Mellemtrinsband (valgfrit)",
+    "INDKOR": "Indskolingskor",
+    "MELBAND": "Mellemtrinsband",
     "STØTTE": "Støtte",
     "CO-TEACHER": "Co-teacher",
     "MASTER": "Master Class",
 }
+
+OPTIONAL_TIMETABLE_SUBJECTS = {"INDKOR", "MELBAND"}
 
 
 # ---------------------------------------------------------------------------
@@ -189,20 +191,45 @@ def _apply_timetable_aliases(
     timetable: dict[str, Any],
     subject_aliases: dict[str, str],
     teacher_aliases: dict[str, str],
+    child_name: str | None = None,
+    optional_subjects_by_child: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Apply display aliases while retaining raw timetable values."""
     translated = copy.deepcopy(timetable)
+
+    participating_optional_subjects: set[str] | None = None
+    child_key = str(_decode_display_value(child_name) or "").casefold()
+    if child_key and optional_subjects_by_child is not None:
+        for configured_child, configured_subjects in optional_subjects_by_child.items():
+            configured_key = str(_decode_display_value(configured_child) or "").casefold()
+            if configured_key != child_key:
+                continue
+            if isinstance(configured_subjects, str):
+                configured_subjects = configured_subjects.replace(";", ",").split(",")
+            if not isinstance(configured_subjects, (list, tuple, set)):
+                configured_subjects = []
+            participating_optional_subjects = {
+                str(subject).strip().upper()
+                for subject in configured_subjects
+                if str(subject).strip()
+            }
+            break
 
     def translate_lesson(lesson: dict[str, Any]) -> bool:
         subject_raw = _decode_display_value(
             lesson.get("subject_raw") or lesson.get("subject")
         ) or ""
+        subject_code = subject_raw.upper()
         lesson["subject_raw"] = subject_raw
         lesson["subject"] = _apply_subject_alias(subject_raw, subject_aliases)
-        lesson["hidden"] = (
-            subject_raw.upper() in subject_aliases
-            and not lesson["subject"]
+        lesson["optional"] = subject_code in OPTIONAL_TIMETABLE_SUBJECTS
+        hidden_by_alias = subject_code in subject_aliases and not lesson["subject"]
+        hidden_by_participation = (
+            lesson["optional"]
+            and participating_optional_subjects is not None
+            and subject_code not in participating_optional_subjects
         )
+        lesson["hidden"] = hidden_by_alias or hidden_by_participation
 
         for field in ("substitute_teacher", "absent_teacher"):
             raw_field = f"{field}_raw"

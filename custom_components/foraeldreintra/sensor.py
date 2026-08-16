@@ -16,6 +16,7 @@ from .const import (
     DEFAULT_INCLUDE_WEEKPLAN_FOCUS,
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
+    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
     DEFAULT_SHOW_TIMETABLE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_FOCUS_SENSORS,
@@ -32,6 +33,7 @@ from .const import (
     OPT_INCLUDE_WEEKPLAN_FOCUS,
     OPT_INCLUDE_WEEKPLAN_GENERAL,
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
+    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
     OPT_SHOW_TIMETABLE_SENSORS,
@@ -418,10 +420,16 @@ class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
             for name, timetable in ((self.coordinator.data or {}).get("timetables", {}) or {}).items()
         }
         timetable = timetables.get(self._child, {})
+        optional_by_child = self._entry.options.get(
+            OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+            DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+        )
         return _apply_timetable_aliases(
             timetable,
             self._subject_alias_map(),
             self._teacher_alias_map(),
+            self._child,
+            optional_by_child if isinstance(optional_by_child, dict) else {},
         )
 
     @property

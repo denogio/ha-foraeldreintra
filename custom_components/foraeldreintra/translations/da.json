@@ -42,6 +42,7 @@
           "add_weekplan_markdown": "Tilføj markdown til ugeplan",
           "subject_aliases": "Fag-oversættelser (fx HDS=Håndværk og Design, SVØ=Svømning)",
           "teacher_aliases": "Lærernavne (fx ABC=Anna Andersen)",
+          "optional_timetable_subjects_by_child": "Valgfrie skemaaktiviteter pr. barn (fx {\"Anna\": [\"INDKOR\"], \"Bo\": []})",
           "weekplan_derived_homework_enabled": "Tilføj afledte lektier fra ugeplan",
           "weekplan_derived_homework_keywords": "Nøgleord til afledte lektier fra ugeplan (fx diktatord, øveord)"
         }
