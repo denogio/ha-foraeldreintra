@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, timedelta
+from time import monotonic
 from typing import Any
 
 from aiohttp import ClientSession
@@ -57,6 +58,7 @@ class ForaldreIntraClient:
 
         self._home_html: str | None = None
         self._home_url: str | None = None
+        self._schedule_cache: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 
     async def login(self) -> None:
         """Login og cache den første parent-side vi lander på."""
@@ -238,6 +240,11 @@ class ForaldreIntraClient:
         target_date = target_date or date.today()
         monday = target_date - timedelta(days=target_date.weekday())
         week_start = monday.isoformat()
+        cache_key = (child.id, week_start)
+        cached = self._schedule_cache.get(cache_key)
+        if cached and monotonic() - cached[0] < 15 * 60:
+            return cached[1]
+
         schedule_url = (
             f"{self._base_url}/parent/{child.id}/{child.name}/schedules/schedule/scheme"
             f"?weekStartDate={week_start}"
@@ -245,6 +252,7 @@ class ForaldreIntraClient:
         html_text = await self._get_text(schedule_url)
         parsed = _parse_schedule_page(html_text, schedule_url)
         parsed["barn"] = child.name
+        self._schedule_cache[cache_key] = (monotonic(), parsed)
         return parsed
 
     async def get_weekplans_for_children(

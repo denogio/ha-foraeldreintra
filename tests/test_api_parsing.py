@@ -291,13 +291,17 @@ class TestParseSchedulePage:
         assert result["lessons"][0]["end"] == "09:05"
         assert result["lessons"][0]["subject"] == "Dansk"
 
-    def test_preserves_multiple_lesson_content_spans(self):
+    def test_parses_substitute_teacher_block(self):
         html_text = (Path(__file__).parent / "fixtures" / "schedule.html").read_text()
         result = _parse_schedule_page(html_text, "https://example.com/schedule")
 
         lesson = result["days"][1]["lessons"][0]
-        assert lesson["subject"] == "Matematik / Vikar"
-        assert lesson["contents"] == ["Matematik", "Vikar"]
+        assert lesson["subject"] == "Matematik"
+        assert lesson["teacher_absent"] is True
+        assert lesson["has_substitute"] is True
+        assert lesson["substitute_teacher"] == "Viggo Vikar"
+        assert lesson["absent_teacher"] == "Frida Fraværende"
+        assert lesson["substitute_text"] == "Viggo Vikar er vikar for Frida Fraværende"
 
     def test_missing_schedule_container_returns_empty_schedule(self):
         result = _parse_schedule_page("<html></html>", "https://example.com/schedule")

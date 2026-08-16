@@ -59,6 +59,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         prefixes = [
             f"{entry.entry_id}_homework_",
+            f"{entry.entry_id}_schedule_",
+            f"{entry.entry_id}_calendar_",
             f"{entry.entry_id}_weekplan_",
             f"{entry.entry_id}_weekplan_general_",
             f"{entry.entry_id}_weekplan_focus_",
@@ -67,7 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         all_homework_unique = f"{entry.entry_id}_homework_all"
 
         for entity in list(reg.entities.values()):
-            if entity.domain != "sensor":
+            if entity.domain not in ("sensor", "calendar"):
                 continue
             if entity.platform != DOMAIN:
                 continue

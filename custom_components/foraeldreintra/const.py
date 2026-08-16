@@ -4,7 +4,7 @@ CONF_SCHOOL_URL = "school_url"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "calendar"]
 
 # Options
 OPT_SELECTED_CHILDREN = "selected_children"
@@ -19,6 +19,9 @@ DEFAULT_ADD_HOMEWORK_MARKDOWN = False
 # Skoleskema (separat fra ugeplan)
 OPT_SHOW_SCHEDULE_SENSORS = "show_schedule_sensors"
 DEFAULT_SHOW_SCHEDULE_SENSORS = True
+
+OPT_SHOW_SCHEDULE_CALENDARS = "show_schedule_calendars"
+DEFAULT_SHOW_SCHEDULE_CALENDARS = True
 
 # Ugeplan - sensorer
 OPT_SHOW_WEEKPLAN_SENSORS = "show_weekplan_sensors"

@@ -284,12 +284,34 @@ def _parse_schedule_page(html_text: str, url: str) -> dict[str, Any]:
         if not contents:
             continue
 
+        substitute_block = cell.select_one(".sk-schedule-absent-teacher-block")
+        substitute_text = (
+            _clean_text(substitute_block.get_text(" ", strip=True))
+            if substitute_block
+            else ""
+        )
+        substitute_teacher = None
+        absent_teacher = None
+        substitute_match = re.match(
+            r"^(.+?)\s+er\s+vikar\s+for\s+(.+)$",
+            substitute_text,
+            re.IGNORECASE,
+        )
+        if substitute_match:
+            substitute_teacher = substitute_match.group(1).strip()
+            absent_teacher = substitute_match.group(2).strip()
+
         lesson = {
             "day": day["day"],
             "date": day["date"],
             **slot,
             "subject": " / ".join(contents),
             "contents": contents,
+            "teacher_absent": bool(substitute_text),
+            "has_substitute": bool(re.search(r"\bvikar\b", substitute_text, re.IGNORECASE)),
+            "substitute_text": substitute_text or None,
+            "substitute_teacher": substitute_teacher,
+            "absent_teacher": absent_teacher,
         }
         day["lessons"].append({key: value for key, value in lesson.items() if key not in ("day", "date")})
         lessons.append(lesson)
