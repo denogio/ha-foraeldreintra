@@ -358,18 +358,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
         ] = bool
 
+        multiline_text = selector.TextSelector(
+            selector.TextSelectorConfig(multiline=True)
+        )
         schema_dict[
             vol.Optional(
                 OPT_SUBJECT_ALIASES,
                 default=str(existing.get(OPT_SUBJECT_ALIASES, DEFAULT_SUBJECT_ALIASES) or ""),
             )
-        ] = str
+        ] = multiline_text
         schema_dict[
             vol.Optional(
                 OPT_TEACHER_ALIASES,
                 default=str(existing.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""),
             )
-        ] = str
+        ] = multiline_text
         schema_dict[
             vol.Optional(
                 OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,

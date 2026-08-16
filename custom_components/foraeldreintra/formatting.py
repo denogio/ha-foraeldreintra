@@ -37,7 +37,11 @@ STANDARD_SUBJECT_ALIASES = {
     "SVØ": "Svømning",
     "SVØM": "Svømning",
     "N/T": "Natur/Teknologi",
+    "HIS": "Historie",
+    "KRI": "Kristendomskundskab",
     "KRIS": "Kristendomskundskab",
+    "MAD": "Madkundskab",
+    "TYS": "Tysk",
     "KLA": "Klassens tid",
     "BOOS": "Booster",
     "PÆD": "Pædagog",
@@ -230,6 +234,19 @@ def _apply_timetable_aliases(
             and subject_code not in participating_optional_subjects
         )
         lesson["hidden"] = hidden_by_alias or hidden_by_participation
+
+        teacher_raw = _decode_display_value(
+            lesson.get("teacher_raw") or lesson.get("teacher")
+        )
+        lesson["teacher_raw"] = teacher_raw
+        lesson["teacher"] = (
+            _apply_subject_alias(teacher_raw, teacher_aliases)
+            if teacher_raw
+            else None
+        )
+        room_raw = _decode_display_value(lesson.get("room_raw") or lesson.get("room"))
+        lesson["room_raw"] = room_raw
+        lesson["room"] = room_raw
 
         for field in ("substitute_teacher", "absent_teacher"):
             raw_field = f"{field}_raw"

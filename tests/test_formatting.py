@@ -195,6 +195,10 @@ class TestApplySubjectAlias:
         assert _apply_subject_alias("MAT", STANDARD_SUBJECT_ALIASES) == "Matematik"
         assert _apply_subject_alias("HDS", STANDARD_SUBJECT_ALIASES) == "Håndværk og Design"
         assert _apply_subject_alias("SVØ", STANDARD_SUBJECT_ALIASES) == "Svømning"
+        assert _apply_subject_alias("HIS", STANDARD_SUBJECT_ALIASES) == "Historie"
+        assert _apply_subject_alias("KRI", STANDARD_SUBJECT_ALIASES) == "Kristendomskundskab"
+        assert _apply_subject_alias("MAD", STANDARD_SUBJECT_ALIASES) == "Madkundskab"
+        assert _apply_subject_alias("TYS", STANDARD_SUBJECT_ALIASES) == "Tysk"
         assert _apply_subject_alias("INDKOR", STANDARD_SUBJECT_ALIASES) == "Indskolingskor"
         assert _apply_subject_alias("MELBAND", STANDARD_SUBJECT_ALIASES) == "Mellemtrinsband"
 
@@ -204,7 +208,9 @@ class TestApplyTimetableAliases:
         timetable = {
             "lessons": [
                 {
+                    "teacher": "ABC",
                     "subject": "HDS",
+                    "room": "A12",
                     "substitute_teacher": "ABC",
                     "absent_teacher": "DEF",
                     "substitute_text": "ABC er vikar for DEF",
@@ -222,6 +228,10 @@ class TestApplyTimetableAliases:
 
         assert lesson["subject"] == "Håndværk og Design"
         assert lesson["subject_raw"] == "HDS"
+        assert lesson["teacher"] == "Anna Andersen"
+        assert lesson["teacher_raw"] == "ABC"
+        assert lesson["room"] == "A12"
+        assert lesson["room_raw"] == "A12"
         assert lesson["substitute_teacher"] == "Anna Andersen"
         assert lesson["substitute_teacher_raw"] == "ABC"
         assert lesson["absent_teacher"] == "Dennis Eriksen"

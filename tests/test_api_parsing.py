@@ -11,6 +11,7 @@ from custom_components.foraeldreintra.api_parser import (
     _extract_latest_weekplan_from_list,
     _html_to_text,
     _parse_homework_notes,
+    _parse_timetable_lesson_text,
     _parse_timetable_page,
     _parse_weekplan_page,
 )
@@ -289,19 +290,32 @@ class TestParseTimetablePage:
         assert result["days"][0]["date"] == "2026-08-17"
         assert result["lessons"][0]["start"] == "08:05"
         assert result["lessons"][0]["end"] == "09:05"
-        assert result["lessons"][0]["subject"] == "Dansk"
+        assert result["lessons"][0]["teacher"] == "AA"
+        assert result["lessons"][0]["subject"] == "DAN"
+        assert result["lessons"][0]["room"] == "A12"
+        assert result["lessons"][0]["raw"] == "AA DAN A12"
 
     def test_parses_substitute_teacher_block(self):
         html_text = (Path(__file__).parent / "fixtures" / "timetable.html").read_text()
         result = _parse_timetable_page(html_text, "https://example.com/timetable")
 
         lesson = result["days"][1]["lessons"][0]
-        assert lesson["subject"] == "Matematik"
+        assert lesson["teacher"] == "FF"
+        assert lesson["subject"] == "MAT"
+        assert lesson["room"] == "B07"
         assert lesson["teacher_absent"] is True
         assert lesson["has_substitute"] is True
-        assert lesson["substitute_teacher"] == "Viggo Vikar"
-        assert lesson["absent_teacher"] == "Frida Fraværende"
-        assert lesson["substitute_text"] == "Viggo Vikar er vikar for Frida Fraværende"
+        assert lesson["substitute_teacher"] == "VV"
+        assert lesson["absent_teacher"] == "FF"
+        assert lesson["substitute_text"] == "VV er vikar for FF"
+
+    def test_single_token_activity_is_parsed_as_subject_only(self):
+        assert _parse_timetable_lesson_text("MELBAND") == {
+            "teacher": None,
+            "subject": "MELBAND",
+            "room": None,
+            "raw": "MELBAND",
+        }
 
     def test_missing_schedule_container_returns_empty_schedule(self):
         result = _parse_timetable_page("<html></html>", "https://example.com/timetable")

@@ -210,6 +210,23 @@ def _parse_weekplan_page(
     }
 
 
+def _parse_timetable_lesson_text(text: str) -> dict[str, str | None]:
+    """Split SkoleIntra's ``TEACHER SUBJECT ROOM`` lesson label."""
+    raw = _clean_text(text)
+    parts = raw.split()
+    if not parts:
+        return {"teacher": None, "subject": "", "room": None, "raw": raw}
+    if len(parts) == 1:
+        return {"teacher": None, "subject": parts[0], "room": None, "raw": raw}
+
+    return {
+        "teacher": parts[0],
+        "subject": parts[1],
+        "room": " ".join(parts[2:]) or None,
+        "raw": raw,
+    }
+
+
 def _parse_timetable_page(html_text: str, url: str) -> dict[str, Any]:
     """Parse the grid returned by the separate SkoleIntra timetable endpoint."""
     soup = BeautifulSoup(html_text, "html.parser")
@@ -284,6 +301,7 @@ def _parse_timetable_page(html_text: str, url: str) -> dict[str, Any]:
         if not contents:
             continue
 
+        lesson_label = _parse_timetable_lesson_text(" ".join(contents))
         substitute_block = cell.select_one(".sk-schedule-absent-teacher-block")
         substitute_text = (
             _clean_text(substitute_block.get_text(" ", strip=True))
@@ -305,7 +323,10 @@ def _parse_timetable_page(html_text: str, url: str) -> dict[str, Any]:
             "day": day["day"],
             "date": day["date"],
             **slot,
-            "subject": " / ".join(contents),
+            "teacher": lesson_label["teacher"],
+            "subject": lesson_label["subject"],
+            "room": lesson_label["room"],
+            "raw": lesson_label["raw"],
             "contents": contents,
             "teacher_absent": bool(substitute_text),
             "has_substitute": bool(re.search(r"\bvikar\b", substitute_text, re.IGNORECASE)),

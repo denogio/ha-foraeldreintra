@@ -118,6 +118,12 @@ def _timetable_events(
         description_lines = [f"Barn: {child_name}"]
         if lesson.get("optional"):
             description_lines.append("Valgfri aktivitet")
+        teacher = _decode_display_value(lesson.get("teacher"))
+        room = _decode_display_value(lesson.get("room"))
+        if teacher:
+            description_lines.append(f"Lærer: {teacher}")
+        if room:
+            description_lines.append(f"Lokale: {room}")
         substitute_text = _decode_display_value(lesson.get("substitute_text"))
         if substitute_text:
             description_lines.append(substitute_text)

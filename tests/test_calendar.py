@@ -18,7 +18,9 @@ def test_timetable_events_marks_substitute_and_adds_description():
                 "date": "2026-08-24",
                 "start": "08:05",
                 "end": "09:05",
+                "teacher": "FF",
                 "subject": "HDS",
+                "room": "B07",
                 "has_substitute": True,
                 "substitute_teacher": "VV",
                 "absent_teacher": "FF",
@@ -37,7 +39,10 @@ def test_timetable_events_marks_substitute_and_adds_description():
     assert len(events) == 1
     assert events[0].summary == "Håndværk og Design (vikar)"
     assert events[0].description == (
-        "Barn: Testbarn\nViggo Vikar er vikar for Frida Fraværende"
+        "Barn: Testbarn\n"
+        "Lærer: Frida Fraværende\n"
+        "Lokale: B07\n"
+        "Viggo Vikar er vikar for Frida Fraværende"
     )
     assert events[0].start == datetime(
         2026, 8, 24, 8, 5, tzinfo=ZoneInfo("Europe/Copenhagen")
