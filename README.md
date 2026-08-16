@@ -174,7 +174,7 @@ Integrationen opretter desuden `ForældreIntra skoleskema (<barn>)` som kalender
 
 Under integrationens indstillinger kan fagforkortelser og lærerinitialer oversættes med `FORKORTELSE=Visningsnavn`, fx `HDS=Håndværk og Design`, `SVØ=Svømning` og `ABC=Anna Andersen`. Felterne understøtter én oversættelse pr. linje. SkoleIntras lektionsformat `LÆRER FAG LOKALE` opdeles i separate `teacher`, `subject` og `room`-felter, og kalenderen viser alle tre oplysninger. Timetable-sensoren bevarer samtidig råværdierne i felter med suffikset `_raw`.
 
-Valgfrie aktiviteter som `INDKOR` og `MELBAND` konfigureres pr. barn under **Valgfrie skemaaktiviteter pr. barn**, fx `{"Anna": ["INDKOR"], "Bo": []}`. Når et barn er angivet i indstillingen, vises kun de valgfri aktiviteter, der står på barnets liste. Børn, som ikke er angivet, beholder alle aktiviteter synlige, så en opgradering ikke skjuler noget automatisk. En tom fagoversættelse som `INDKOR=` skjuler fortsat aktiviteten globalt for alle børn.
+Fag kan skjules pr. barn under **Skjul fag pr. barn**, fx `{"Anna": ["MELBAND"], "Bo": ["INDKOR"]}`. Listen er en almindelig eksklusionsliste: fagkoderne på barnets liste fjernes fra både timetable-sensoren og kalenderen. Fagoversættelser bruges kun til navne og afgør ikke, om et fag vises.
 
 Kortet kan blandt andet bruge disse oplysninger fra lektiesensoren:
 

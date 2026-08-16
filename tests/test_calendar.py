@@ -52,7 +52,7 @@ def test_timetable_events_marks_substitute_and_adds_description():
     )
 
 
-def test_optional_calendar_event_is_filtered_per_child():
+def test_calendar_subject_is_hidden_per_child_without_optional_label():
     timetable = {
         "lessons": [
             {
@@ -64,24 +64,24 @@ def test_optional_calendar_event_is_filtered_per_child():
         ]
     }
 
-    participating = _timetable_events(
+    visible = _timetable_events(
         timetable,
         "Anna",
         STANDARD_SUBJECT_ALIASES,
         {},
-        {"Anna": ["INDKOR"], "Bo": []},
+        {"Anna": [], "Bo": ["INDKOR"]},
     )
-    not_participating = _timetable_events(
+    hidden = _timetable_events(
         timetable,
         "Bo",
         STANDARD_SUBJECT_ALIASES,
         {},
-        {"Anna": ["INDKOR"], "Bo": []},
+        {"Anna": [], "Bo": ["INDKOR"]},
     )
 
-    assert participating[0].summary == "Indskolingskor (valgfrit)"
-    assert "Valgfri aktivitet" in participating[0].description
-    assert not_participating == []
+    assert visible[0].summary == "Indskolingskor"
+    assert "valgfrit" not in visible[0].description.lower()
+    assert hidden == []
 
 
 def test_calendar_fetches_each_week_in_requested_range():

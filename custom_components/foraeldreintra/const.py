@@ -61,8 +61,11 @@ DEFAULT_SUBJECT_ALIASES = ""
 OPT_TEACHER_ALIASES = "teacher_aliases"
 DEFAULT_TEACHER_ALIASES = ""
 
-OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD = "optional_timetable_subjects_by_child"
-DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD: dict[str, list[str]] = {}
+OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD = "hidden_timetable_subjects_by_child"
+DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD: dict[str, list[str]] = {}
+
+# Legacy positive participation option from v2.4.1-v2.4.3.
+LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD = "optional_timetable_subjects_by_child"
 
 # Intern fast polling
 DEFAULT_SCAN_INTERVAL_MINUTES = 60

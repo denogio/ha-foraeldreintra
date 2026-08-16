@@ -42,7 +42,7 @@
           "add_weekplan_markdown": "Add markdown to weekly plan",
           "subject_aliases": "Subject aliases (e.g. HDS=Craft and Design, SVØ=Swimming)",
           "teacher_aliases": "Teacher names (e.g. ABC=Anna Andersen)",
-          "optional_timetable_subjects_by_child": "Optional timetable activities by child (e.g. {\"Anna\": [\"INDKOR\"], \"Bo\": []})",
+          "hidden_timetable_subjects_by_child": "Hidden timetable subjects by child (e.g. {\"Anna\": [\"MELBAND\"], \"Bo\": [\"INDKOR\"]})",
           "weekplan_derived_homework_enabled": "Add derived homework from weekly plan",
           "weekplan_derived_homework_keywords": "Weekly plan keywords for derived homework (e.g. diktatord, øveord)"
         }

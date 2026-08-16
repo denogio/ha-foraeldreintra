@@ -15,8 +15,8 @@ from .const import (
     DEFAULT_ADD_WEEKPLAN_MARKDOWN,
     DEFAULT_INCLUDE_WEEKPLAN_FOCUS,
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
+    DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
-    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
     DEFAULT_SHOW_TIMETABLE_SENSORS,
     DEFAULT_SHOW_WEEKPLAN_FOCUS_SENSORS,
@@ -27,13 +27,14 @@ from .const import (
     DEFAULT_TEACHER_ALIASES,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     DOMAIN,
+    LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     LEGACY_OPT_SHOW_SCHEDULE_SENSORS,
     OPT_ADD_HOMEWORK_MARKDOWN,
     OPT_ADD_WEEKPLAN_MARKDOWN,
     OPT_INCLUDE_WEEKPLAN_FOCUS,
     OPT_INCLUDE_WEEKPLAN_GENERAL,
+    OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
-    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
     OPT_SHOW_TIMETABLE_SENSORS,
@@ -63,6 +64,7 @@ from .formatting import (
     _extract_practice_text_from_general_content,
     _extract_year_from_weekplan,
     _formatted_date_to_iso,
+    _legacy_optional_subjects_to_hidden,
     _lesson_matches_practice_marker,
     _normalize_subject_value,
     _parse_keyword_lines,
@@ -437,16 +439,24 @@ class ForaeldreIntraChildTimetableSensor(ForaeldreIntraBaseSensor):
             for name, timetable in ((self.coordinator.data or {}).get("timetables", {}) or {}).items()
         }
         timetable = timetables.get(self._child, {})
-        optional_by_child = self._entry.options.get(
-            OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-            DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-        )
+        if OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD in self._entry.options:
+            hidden_by_child = self._entry.options[OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD]
+        else:
+            legacy = self._entry.options.get(
+                LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
+            )
+            hidden_by_child = (
+                _legacy_optional_subjects_to_hidden(legacy)
+                if isinstance(legacy, dict)
+                else {}
+            )
         return _apply_timetable_aliases(
             timetable,
             self._subject_alias_map(),
             self._teacher_alias_map(),
             self._child,
-            optional_by_child if isinstance(optional_by_child, dict) else {},
+            hidden_by_child if isinstance(hidden_by_child, dict) else {},
         )
 
     @property

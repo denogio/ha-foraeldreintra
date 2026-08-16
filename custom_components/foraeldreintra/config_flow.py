@@ -15,9 +15,9 @@ from .const import (
     DEFAULT_ADD_HOMEWORK_MARKDOWN,
     DEFAULT_ADD_WEEKPLAN_MARKDOWN,
     DEFAULT_INCLUDE_WEEKPLAN_FOCUS,
+    DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_INCLUDE_WEEKPLAN_GENERAL,
     DEFAULT_INCLUDE_WEEKPLAN_SCHEDULE,
-    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_SHOW_HOMEWORK_SENSORS,
     DEFAULT_SHOW_TIMETABLE_CALENDARS,
     DEFAULT_SHOW_TIMETABLE_SENSORS,
@@ -30,14 +30,15 @@ from .const import (
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_ENABLED,
     DEFAULT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
     DOMAIN,
+    LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     LEGACY_OPT_SHOW_SCHEDULE_CALENDARS,
     LEGACY_OPT_SHOW_SCHEDULE_SENSORS,
     OPT_ADD_HOMEWORK_MARKDOWN,
     OPT_ADD_WEEKPLAN_MARKDOWN,
     OPT_INCLUDE_WEEKPLAN_FOCUS,
+    OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_INCLUDE_WEEKPLAN_GENERAL,
     OPT_INCLUDE_WEEKPLAN_SCHEDULE,
-    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_HOMEWORK_SENSORS,
     OPT_SHOW_TIMETABLE_CALENDARS,
@@ -52,6 +53,7 @@ from .const import (
     OPT_WEEKPLAN_DERIVED_HOMEWORK_KEYWORDS,
 )
 from .decoding import _decode_child_name
+from .formatting import _legacy_optional_subjects_to_hidden
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -217,12 +219,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             cleaned[OPT_TEACHER_ALIASES] = str(
                 cleaned.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""
             ).strip()
-            optional_by_child = cleaned.get(
-                OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-                DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+            hidden_by_child = cleaned.get(
+                OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
+                DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
             )
-            cleaned[OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD] = (
-                dict(optional_by_child) if isinstance(optional_by_child, dict) else {}
+            cleaned[OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD] = (
+                dict(hidden_by_child) if isinstance(hidden_by_child, dict) else {}
             )
 
             return self.async_create_entry(title="", data=cleaned)
@@ -376,13 +378,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=str(existing.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES) or ""),
             )
         ] = multiline_text
+        hidden_subjects_default = existing.get(OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD)
+        if hidden_subjects_default is None:
+            legacy_optional = existing.get(
+                LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+                DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
+            )
+            hidden_subjects_default = (
+                _legacy_optional_subjects_to_hidden(legacy_optional)
+                if isinstance(legacy_optional, dict)
+                else {}
+            )
         schema_dict[
             vol.Optional(
-                OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-                default=existing.get(
-                    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-                    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-                ),
+                OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
+                default=hidden_subjects_default,
             )
         ] = selector.ObjectSelector()
 

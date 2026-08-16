@@ -13,13 +13,14 @@ from homeassistant.util import slugify
 
 from .api import Child, ForaldreIntraError
 from .const import (
-    DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+    DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     DEFAULT_SHOW_TIMETABLE_CALENDARS,
     DEFAULT_SUBJECT_ALIASES,
     DEFAULT_TEACHER_ALIASES,
     DOMAIN,
+    LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
     LEGACY_OPT_SHOW_SCHEDULE_CALENDARS,
-    OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+    OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
     OPT_SELECTED_CHILDREN,
     OPT_SHOW_TIMETABLE_CALENDARS,
     OPT_SUBJECT_ALIASES,
@@ -31,6 +32,7 @@ from .formatting import (
     _apply_timetable_aliases,
     _build_subject_alias_map,
     _build_teacher_alias_map,
+    _legacy_optional_subjects_to_hidden,
 )
 
 _LOCAL_TIMEZONE = ZoneInfo("Europe/Copenhagen")
@@ -92,14 +94,14 @@ def _timetable_events(
     child_name: str,
     subject_aliases: dict[str, str] | None = None,
     teacher_aliases: dict[str, str] | None = None,
-    optional_subjects_by_child: dict[str, Any] | None = None,
+    hidden_subjects_by_child: dict[str, Any] | None = None,
 ) -> list[CalendarEvent]:
     translated = _apply_timetable_aliases(
         timetable,
         subject_aliases or {},
         teacher_aliases or {},
         child_name,
-        optional_subjects_by_child,
+        hidden_subjects_by_child,
     )
     events: list[CalendarEvent] = []
     for lesson in translated.get("lessons", []) or []:
@@ -112,16 +114,9 @@ def _timetable_events(
 
         subject = _decode_display_value(lesson.get("subject")) or "Lektion"
         has_substitute = bool(lesson.get("has_substitute"))
-        labels = []
-        if lesson.get("optional"):
-            labels.append("valgfrit")
-        if has_substitute:
-            labels.append("vikar")
-        summary = f"{subject} ({', '.join(labels)})" if labels else subject
+        summary = f"{subject} (vikar)" if has_substitute else subject
 
         description_lines = [f"Barn: {child_name}"]
-        if lesson.get("optional"):
-            description_lines.append("Valgfri aktivitet")
         teacher = _decode_display_value(lesson.get("teacher"))
         room = _decode_display_value(lesson.get("room"))
         if teacher:
@@ -175,12 +170,20 @@ class ForaeldreIntraTimetableCalendar(
             self._entry.options.get(OPT_TEACHER_ALIASES, DEFAULT_TEACHER_ALIASES)
         )
 
-    def _optional_subjects_by_child(self) -> dict[str, Any]:
-        value = self._entry.options.get(
-            OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
-            DEFAULT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+    def _hidden_subjects_by_child(self) -> dict[str, Any]:
+        if OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD in self._entry.options:
+            value = self._entry.options[OPT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD]
+            return value if isinstance(value, dict) else {}
+
+        legacy = self._entry.options.get(
+            LEGACY_OPT_OPTIONAL_TIMETABLE_SUBJECTS_BY_CHILD,
+            DEFAULT_HIDDEN_TIMETABLE_SUBJECTS_BY_CHILD,
         )
-        return value if isinstance(value, dict) else {}
+        return (
+            _legacy_optional_subjects_to_hidden(legacy)
+            if isinstance(legacy, dict)
+            else {}
+        )
 
     def _current_timetable(self) -> dict[str, Any]:
         timetables = (self.coordinator.data or {}).get("timetables", {}) or {}
@@ -201,7 +204,7 @@ class ForaeldreIntraTimetableCalendar(
                     self._child_display_name,
                     self._subject_aliases(),
                     self._teacher_aliases(),
-                    self._optional_subjects_by_child(),
+                    self._hidden_subjects_by_child(),
                 )
                 if _as_local_datetime(event.end) > now
             ),
@@ -236,7 +239,7 @@ class ForaeldreIntraTimetableCalendar(
                     self._child_display_name,
                     self._subject_aliases(),
                     self._teacher_aliases(),
-                    self._optional_subjects_by_child(),
+                    self._hidden_subjects_by_child(),
                 )
             )
             monday += timedelta(days=7)

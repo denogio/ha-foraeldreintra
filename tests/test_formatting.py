@@ -15,6 +15,7 @@ from custom_components.foraeldreintra.formatting import (
     _format_general_content,
     _formatted_date_to_iso,
     _is_secondary_subject,
+    _legacy_optional_subjects_to_hidden,
     _lesson_matches_practice_marker,
     _looks_like_date_heading,
     _normalize_subject_value,
@@ -240,7 +241,7 @@ class TestApplyTimetableAliases:
         assert lesson["substitute_text_raw"] == "ABC er vikar for DEF"
         assert timetable["lessons"][0]["subject"] == "HDS"
 
-    def test_optional_activities_are_filtered_per_child(self):
+    def test_subjects_are_excluded_per_child(self):
         timetable = {
             "lessons": [
                 {"subject": "INDKOR"},
@@ -255,17 +256,14 @@ class TestApplyTimetableAliases:
             STANDARD_SUBJECT_ALIASES,
             {},
             "Anna",
-            {"Anna": ["INDKOR"], "Bo": []},
+            {"Anna": ["MELBAND", "DAN"], "Bo": ["INDKOR"]},
         )
 
-        assert [lesson["subject_raw"] for lesson in result["lessons"]] == [
-            "INDKOR",
-            "DAN",
-        ]
+        assert [lesson["subject_raw"] for lesson in result["lessons"]] == ["INDKOR"]
         assert result["lessons"][0]["subject"] == "Indskolingskor"
-        assert result["lessons"][0]["optional"] is True
+        assert "optional" not in result["lessons"][0]
 
-    def test_child_without_participation_configuration_keeps_optional_activities(self):
+    def test_child_without_exclusions_keeps_all_subjects(self):
         timetable = {
             "lessons": [{"subject": "INDKOR"}],
             "days": [],
@@ -280,9 +278,8 @@ class TestApplyTimetableAliases:
         )
 
         assert len(result["lessons"]) == 1
-        assert result["lessons"][0]["optional"] is True
 
-    def test_empty_subject_alias_hides_optional_activity(self):
+    def test_empty_subject_alias_does_not_hide_timetable_subject(self):
         timetable = {
             "lessons": [{"subject": "INDKOR"}, {"subject": "DAN"}],
             "days": [
@@ -301,8 +298,22 @@ class TestApplyTimetableAliases:
             {},
         )
 
-        assert [lesson["subject"] for lesson in result["lessons"]] == ["Dansk"]
-        assert [lesson["subject"] for lesson in result["days"][0]["lessons"]] == ["Dansk"]
+        assert [lesson["subject"] for lesson in result["lessons"]] == [
+            "INDKOR",
+            "Dansk",
+        ]
+        assert [lesson["subject"] for lesson in result["days"][0]["lessons"]] == [
+            "INDKOR",
+            "Dansk",
+        ]
+
+    def test_legacy_participation_is_converted_to_exclusions(self):
+        assert _legacy_optional_subjects_to_hidden(
+            {"Anna": ["INDKOR"], "Bo": []}
+        ) == {
+            "Anna": ["MELBAND"],
+            "Bo": ["INDKOR", "MELBAND"],
+        }
 
 
 class TestPrettyTitleCase:

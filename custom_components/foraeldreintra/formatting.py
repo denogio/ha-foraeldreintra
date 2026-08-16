@@ -58,7 +58,7 @@ STANDARD_SUBJECT_ALIASES = {
     "MASTER": "Master Class",
 }
 
-OPTIONAL_TIMETABLE_SUBJECTS = {"INDKOR", "MELBAND"}
+_LEGACY_OPTIONAL_TIMETABLE_SUBJECTS = {"INDKOR", "MELBAND"}
 
 
 # ---------------------------------------------------------------------------
@@ -196,20 +196,41 @@ def _apply_subject_alias(label: str, alias_map: dict[str, str]) -> str:
     return cleaned
 
 
+def _legacy_optional_subjects_to_hidden(
+    optional_subjects_by_child: dict[str, Any],
+) -> dict[str, list[str]]:
+    """Convert the v2.4.1 positive participation option to exclusions."""
+    hidden: dict[str, list[str]] = {}
+    for child_name, participating in optional_subjects_by_child.items():
+        if isinstance(participating, str):
+            participating = participating.replace(";", ",").split(",")
+        if not isinstance(participating, (list, tuple, set)):
+            participating = []
+        participating_codes = {
+            str(subject).strip().upper()
+            for subject in participating
+            if str(subject).strip()
+        }
+        hidden[str(child_name)] = sorted(
+            _LEGACY_OPTIONAL_TIMETABLE_SUBJECTS - participating_codes
+        )
+    return hidden
+
+
 def _apply_timetable_aliases(
     timetable: dict[str, Any],
     subject_aliases: dict[str, str],
     teacher_aliases: dict[str, str],
     child_name: str | None = None,
-    optional_subjects_by_child: dict[str, Any] | None = None,
+    hidden_subjects_by_child: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Apply display aliases while retaining raw timetable values."""
+    """Apply aliases and per-child exclusions while retaining raw values."""
     translated = copy.deepcopy(timetable)
 
-    participating_optional_subjects: set[str] | None = None
+    hidden_subjects: set[str] = set()
     child_key = _decode_child_name(child_name).casefold()
-    if child_key and optional_subjects_by_child is not None:
-        for configured_child, configured_subjects in optional_subjects_by_child.items():
+    if child_key and hidden_subjects_by_child is not None:
+        for configured_child, configured_subjects in hidden_subjects_by_child.items():
             configured_key = _decode_child_name(configured_child).casefold()
             if configured_key != child_key:
                 continue
@@ -217,7 +238,7 @@ def _apply_timetable_aliases(
                 configured_subjects = configured_subjects.replace(";", ",").split(",")
             if not isinstance(configured_subjects, (list, tuple, set)):
                 configured_subjects = []
-            participating_optional_subjects = {
+            hidden_subjects = {
                 str(subject).strip().upper()
                 for subject in configured_subjects
                 if str(subject).strip()
@@ -230,15 +251,10 @@ def _apply_timetable_aliases(
         ) or ""
         subject_code = subject_raw.upper()
         lesson["subject_raw"] = subject_raw
-        lesson["subject"] = _apply_subject_alias(subject_raw, subject_aliases)
-        lesson["optional"] = subject_code in OPTIONAL_TIMETABLE_SUBJECTS
-        hidden_by_alias = subject_code in subject_aliases and not lesson["subject"]
-        hidden_by_participation = (
-            lesson["optional"]
-            and participating_optional_subjects is not None
-            and subject_code not in participating_optional_subjects
-        )
-        lesson["hidden"] = hidden_by_alias or hidden_by_participation
+        aliased_subject = _apply_subject_alias(subject_raw, subject_aliases)
+        lesson["subject"] = aliased_subject or subject_raw
+        lesson.pop("optional", None)
+        lesson["hidden"] = subject_code in hidden_subjects
 
         teacher_raw = _decode_display_value(
             lesson.get("teacher_raw") or lesson.get("teacher")
