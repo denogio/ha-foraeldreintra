@@ -1,7 +1,7 @@
 {
   "domain": "foraeldreintra",
   "name": "ForældreIntra",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "documentation": "https://github.com/denogio/ha-foraeldreintra",
   "issue_tracker": "https://github.com/denogio/ha-foraeldreintra/issues",
   "codeowners": ["@denogio"],

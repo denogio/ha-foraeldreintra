@@ -32,6 +32,7 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             school_url=entry.data[CONF_SCHOOL_URL],
         )
         self._last_good_data: dict[str, Any] | None = None
+        self._consecutive_empty_homework_updates = 0
 
         super().__init__(
             hass,
@@ -84,7 +85,12 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _fetch_children_homework_and_weekplans_with_retry(self) -> dict[str, Any]:
         # Første forsøg
-        data = await self._fetch_children_and_homework()
+        try:
+            data = await self._fetch_children_and_homework()
+        except ForaldreIntraAuthError:
+            _LOGGER.warning("ForældreIntra-sessionen er udløbet. Logger ind igen.")
+            await self.client.login()
+            return await self._fetch_children_and_homework()
 
         if self._is_valid_result(data):
             return data
@@ -108,6 +114,31 @@ class ForaldreIntraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             children = await self.client.get_children()
 
         items = await self.client.get_homework_for_children(children) if children else []
+
+        previous_items = list((self._last_good_data or {}).get("items", []) or [])
+        if children and not items and previous_items:
+            _LOGGER.warning(
+                "Lektier blev tomme efter tidligere at indeholde %d elementer. "
+                "Logger ind igen og prøver lektier én gang til.",
+                len(previous_items),
+            )
+            await self.client.login()
+            children = await self.client.get_children()
+            items = await self.client.get_homework_for_children(children) if children else []
+
+            if not items:
+                self._consecutive_empty_homework_updates += 1
+                if self._consecutive_empty_homework_updates == 1:
+                    _LOGGER.warning(
+                        "Lektier er stadig tomme efter nyt login. "
+                        "Beholder forrige lektier indtil næste opdatering."
+                    )
+                    items = previous_items
+            else:
+                self._consecutive_empty_homework_updates = 0
+        elif items:
+            self._consecutive_empty_homework_updates = 0
+
         weeklyplans = await self.client.get_weekplans_for_children(children) if children else {}
         timetables = await self.client.get_timetables_for_children(children) if children else {}
 

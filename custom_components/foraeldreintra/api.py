@@ -386,6 +386,12 @@ class ForaldreIntraClient:
             if resp.status in (401, 403):
                 raise ForaldreIntraAuthError(f"Adgang nægtet: {url}")
 
+            final_url = str(resp.url)
+            if "/parent/" in url and "/parent/" not in final_url:
+                raise ForaldreIntraAuthError(
+                    f"Sessionen blev viderestillet væk fra parent-siden: {final_url}"
+                )
+
             if resp.status >= 400:
                 raise ForaldreIntraError(f"HTTP {resp.status} ved hentning: {url}")
 
